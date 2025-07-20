@@ -273,7 +273,6 @@
       <path value="$PROJECT_DIR$/app/vendor/dragonmantank/cron-expression" />
       <path value="$PROJECT_DIR$/app/vendor/phpdocumentor/reflection-common" />
       <path value="$PROJECT_DIR$/app/vendor/graham-campbell/result-type" />
-      <path value="$PROJECT_DIR$/app/vendor/laravel/sanctum" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.2" />
