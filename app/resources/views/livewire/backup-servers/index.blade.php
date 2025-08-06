@@ -19,6 +19,7 @@
                 <div class="p-4">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">{{ $server->name }}</h3>
                     <p class="text-gray-600 dark:text-gray-300 mb-4">{{ $server->description }}</p>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">Number of Backups: {{ $server->backups->count() }}</p>
                     <div class="mb-2">
                         <label for="server-url-{{ $server->id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             API URL
