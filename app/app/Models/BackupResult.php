@@ -43,6 +43,9 @@ class BackupResult extends Model
         'WarningsActualLength',
         'ErrorsActualLength',
         'BackendStatistics',
+        'backup_name',
+        'backup_id',
+        'extra',
     ];
 
     protected $casts = [
@@ -56,6 +59,20 @@ class BackupResult extends Model
         'BeginTime' => 'datetime',
         'extra' => 'array',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (isset($model->extra['backup-name'])) {
+                $model->backup_name = $model->extra['backup-name'];
+            }
+            if (isset($model->extra['backup-id'])) {
+                $model->backup_id = $model->extra['backup-id'];
+            }
+        });
+    }
 
     public function backupServer()
     {

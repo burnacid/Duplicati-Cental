@@ -32,8 +32,20 @@ class BackupServer extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function backupResults()
+    {
+        return $this->hasMany(BackupResult::class);
+    }
+
     public function getBackupServerUrlAttribute()
     {
         return url::to('/').'/api/backup-servers/'.$this->id.'/'.$this->api_key.'/backup-result';
+    }
+
+    public function getBackupsAttribute()
+    {
+        $Backups = BackupResult::Where('backup_server_id', $this->id)->select('backup_name', 'backup_id')->distinct()->get();
+
+        return $Backups;
     }
 }
