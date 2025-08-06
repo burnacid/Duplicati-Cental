@@ -58,8 +58,6 @@ class BackupController extends Controller
             '0.Extra.machine-name' => 'required|string',
             '0.Extra.backup-name' => 'required|string',
             '0.Extra.backup-id' => 'required|string',
-            '0.LogLines' => 'present|array',
-            '0.Exception' => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -73,8 +71,6 @@ class BackupController extends Controller
         $backupResult->backup_server_id = $server->id;
         $backupResult->fill($data['Data']);
         $backupResult->extra = $data['Extra'];
-        $backupResult->log_lines = $data['LogLines'];
-        $backupResult->exception = $data['Exception'];
         $backupResult->save();
 
         return response()->json([
