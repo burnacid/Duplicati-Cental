@@ -34,6 +34,6 @@ class BackupServer extends Model
 
     public function getBackupServerUrlAttribute()
     {
-        return url::to('/').'api/backup-servers/'.$this->id.'/'.$this->api_key.'/backup-result';
+        return url::to('/').'/api/backup-servers/'.$this->id.'/'.$this->api_key.'/backup-result';
     }
 }
