@@ -3,7 +3,7 @@
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         @foreach ($backupServers as $server)
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-6">
+            <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm rounded-lg p-6">
                 <h3 class="text-xl font-semibold mb-4">{{ $server->name }}</h3>
 
                 <div class="mb-4">
