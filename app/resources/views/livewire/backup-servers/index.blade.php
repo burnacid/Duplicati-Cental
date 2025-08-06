@@ -19,7 +19,29 @@
                 <div class="p-4">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">{{ $server->name }}</h3>
                     <p class="text-gray-600 dark:text-gray-300 mb-4">{{ $server->description }}</p>
-                    <p>{{$server->BackupServerUrl}}</p>
+                    <div class="mb-2">
+                        <label for="server-url-{{ $server->id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            API URL
+                        </label>
+                        <div class="flex items-center">
+                            <input
+                                type="text"
+                                id="server-url-{{ $server->id }}"
+                                value="{{ $server->BackupServerUrl }}"
+                                class="flex-grow bg-gray-100 dark:bg-zinc-600 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-l-md border-r-0 border border-gray-300 dark:border-zinc-500 focus:outline-none text-sm"
+                                readonly
+                            >
+                            <button
+                                onclick="copyToClipboard(this)"
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-r-md"
+                                title="Copy URL"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                     <div class="flex justify-end space-x-2">
                         <a href="{{ route('backup-servers.edit', $server) }}" class="text-blue-500 hover:text-blue-700 dark:hover:text-blue-400">
                             <span class="sr-only">Edit</span>
@@ -74,4 +96,20 @@
             </div>
         </div>
     </div>
+    <script>
+        function copyToClipboard(button) {
+            const input = button.previousElementSibling;
+            input.select();
+            document.execCommand('copy');
+
+            // Optional: Show a temporary "Copied!" message
+            const originalText = button.innerHTML;
+            button.innerHTML = 'Copied!';
+            button.disabled = true;
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 2000);
+        }
+    </script>
 </div>
