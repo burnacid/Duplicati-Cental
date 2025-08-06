@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -33,7 +32,10 @@ class CreateBackupResultsTable extends Migration
             $table->boolean('PartialBackup');
             $table->boolean('Dryrun');
             $table->string('MainOperation');
-            $table->json('CompactResults');
+            $table->json('CompactResults')->nullable();
+            $table->json('VacuumResults')->nullable();
+            $table->json('DeleteResults')->nullable();
+            $table->json('RepairResults')->nullable();
             $table->json('TestResults');
             $table->string('ParsedResult');
             $table->boolean('Interrupted');
