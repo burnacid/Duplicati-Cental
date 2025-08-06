@@ -17,57 +17,64 @@ class BackupController extends Controller
             ->firstOrFail();
 
         $validator = Validator::make($request->all(), [
-            'Data' => 'required|array',
-            'Data.DeletedFiles' => 'required|integer',
-            'Data.DeletedFolders' => 'required|integer',
-            'Data.ModifiedFiles' => 'required|integer',
-            'Data.ExaminedFiles' => 'required|integer',
-            'Data.OpenedFiles' => 'required|integer',
-            'Data.AddedFiles' => 'required|integer',
-            'Data.SizeOfModifiedFiles' => 'required|integer',
-            'Data.SizeOfAddedFiles' => 'required|integer',
-            'Data.SizeOfExaminedFiles' => 'required|integer',
-            'Data.SizeOfOpenedFiles' => 'required|integer',
-            'Data.NotProcessedFiles' => 'required|integer',
-            'Data.AddedFolders' => 'required|integer',
-            'Data.TooLargeFiles' => 'required|integer',
-            'Data.FilesWithError' => 'required|integer',
-            'Data.ModifiedFolders' => 'required|integer',
-            'Data.ModifiedSymlinks' => 'required|integer',
-            'Data.AddedSymlinks' => 'required|integer',
-            'Data.DeletedSymlinks' => 'required|integer',
-            'Data.PartialBackup' => 'required|boolean',
-            'Data.Dryrun' => 'required|boolean',
-            'Data.MainOperation' => 'required|string',
-            'Data.CompactResults' => 'required|array',
-            'Data.TestResults' => 'required|array',
-            'Data.ParsedResult' => 'required|string',
-            'Data.Interrupted' => 'required|boolean',
-            'Data.Version' => 'required|string',
-            'Data.EndTime' => 'required|date',
-            'Data.BeginTime' => 'required|date',
-            'Data.Duration' => 'required|string',
-            'Data.MessagesActualLength' => 'required|integer',
-            'Data.WarningsActualLength' => 'required|integer',
-            'Data.ErrorsActualLength' => 'required|integer',
-            'Data.BackendStatistics' => 'required|array',
-            'Extra' => 'required|array',
-            'Extra.OperationName' => 'required|string',
-            'Extra.machine-id' => 'required|string',
-            'Extra.machine-name' => 'required|string',
-            'Extra.backup-name' => 'required|string',
-            'Extra.backup-id' => 'required|string',
+            '0' => 'required|array',
+            '0.Data' => 'required|array',
+            '0.Data.DeletedFiles' => 'required|integer',
+            '0.Data.DeletedFolders' => 'required|integer',
+            '0.Data.ModifiedFiles' => 'required|integer',
+            '0.Data.ExaminedFiles' => 'required|integer',
+            '0.Data.OpenedFiles' => 'required|integer',
+            '0.Data.AddedFiles' => 'required|integer',
+            '0.Data.SizeOfModifiedFiles' => 'required|integer',
+            '0.Data.SizeOfAddedFiles' => 'required|integer',
+            '0.Data.SizeOfExaminedFiles' => 'required|integer',
+            '0.Data.SizeOfOpenedFiles' => 'required|integer',
+            '0.Data.NotProcessedFiles' => 'required|integer',
+            '0.Data.AddedFolders' => 'required|integer',
+            '0.Data.TooLargeFiles' => 'required|integer',
+            '0.Data.FilesWithError' => 'required|integer',
+            '0.Data.ModifiedFolders' => 'required|integer',
+            '0.Data.ModifiedSymlinks' => 'required|integer',
+            '0.Data.AddedSymlinks' => 'required|integer',
+            '0.Data.DeletedSymlinks' => 'required|integer',
+            '0.Data.PartialBackup' => 'required|boolean',
+            '0.Data.Dryrun' => 'required|boolean',
+            '0.Data.MainOperation' => 'required|string',
+            '0.Data.CompactResults' => 'required|array',
+            '0.Data.TestResults' => 'required|array',
+            '0.Data.ParsedResult' => 'required|string',
+            '0.Data.Interrupted' => 'required|boolean',
+            '0.Data.Version' => 'required|string',
+            '0.Data.EndTime' => 'required|date',
+            '0.Data.BeginTime' => 'required|date',
+            '0.Data.Duration' => 'required|string',
+            '0.Data.MessagesActualLength' => 'required|integer',
+            '0.Data.WarningsActualLength' => 'required|integer',
+            '0.Data.ErrorsActualLength' => 'required|integer',
+            '0.Data.BackendStatistics' => 'required|array',
+            '0.Extra' => 'required|array',
+            '0.Extra.OperationName' => 'required|string',
+            '0.Extra.machine-id' => 'required|string',
+            '0.Extra.machine-name' => 'required|string',
+            '0.Extra.backup-name' => 'required|string',
+            '0.Extra.backup-id' => 'required|string',
+            '0.LogLines' => 'present|array',
+            '0.Exception' => 'nullable',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $data = $request->input('0');
+
         // Store the backup result
         $backupResult = new BackupResult();
         $backupResult->backup_server_id = $server->id;
-        $backupResult->fill($request->input('Data'));
-        $backupResult->extra = $request->input('Extra');
+        $backupResult->fill($data['Data']);
+        $backupResult->extra = $data['Extra'];
+        $backupResult->log_lines = $data['LogLines'];
+        $backupResult->exception = $data['Exception'];
         $backupResult->save();
 
         return response()->json([
