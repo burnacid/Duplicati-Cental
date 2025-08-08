@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\BackupController;
+use App\Livewire\BackupResults;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -23,6 +24,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/backup-servers', BackupServersIndex::class)->name('backup-servers.index');
     Route::get('/backup-servers/create', BackupServersCreate::class)->name('backup-servers.create');
     Route::get('/backup-servers/{backupServer}/edit', BackupServersEdit::class)->name('backup-servers.edit');
+    Route::get('/backup-results', BackupResults::class)->name('backup-results');
 });
 
 require __DIR__.'/auth.php';

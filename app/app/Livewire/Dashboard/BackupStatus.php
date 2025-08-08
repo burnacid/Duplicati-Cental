@@ -3,21 +3,28 @@
 namespace App\Livewire\Dashboard;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use App\Models\BackupServer;
 use App\Models\BackupResult;
 use Carbon\Carbon;
 
 class BackupStatus extends Component
 {
+    use WithPagination;
+
     public $backupServers;
     public $statusData = [];
     public $backupStatusData = [];
+    public $selectedServerId;
+
+    protected $paginationTheme = 'tailwind';
 
     public function mount()
     {
         $this->backupServers = BackupServer::where('user_id', auth()->user()->id)->with('backupResults')->get();
         $this->loadStatusData();
         $this->loadBackupStatusData();
+        $this->selectedServerId = $this->backupServers->first()->id ?? null;
     }
 
 
@@ -52,6 +59,27 @@ class BackupStatus extends Component
         }
     }
 
+    private function formatDuration($duration)
+    {
+        $parts = explode(':', $duration);
+        $hours = intval($parts[0]);
+        $minutes = intval($parts[1]);
+        $seconds = intval($parts[2]);
+
+        $result = [];
+        if ($hours > 0) {
+            $result[] = $hours . ' hour' . ($hours > 1 ? 's' : '');
+        }
+        if ($minutes > 0) {
+            $result[] = $minutes . ' minute' . ($minutes > 1 ? 's' : '');
+        }
+        if ($seconds > 0 || (empty($result) && $seconds == 0)) {
+            $result[] = $seconds . ' second' . ($seconds != 1 ? 's' : '');
+        }
+
+        return implode(', ', $result);
+    }
+
     private function loadBackupStatusData()
     {
         foreach ($this->backupServers as $server) {
@@ -59,6 +87,17 @@ class BackupStatus extends Component
                 ->select('backup_id', 'backup_name')
                 ->distinct('backup_id')
                 ->get();
+
+            $latestBackupResult = $server->backupResults()
+                ->orderBy('EndTime', 'desc')
+                ->first();
+
+            $serverVersion = $latestBackupResult ? $latestBackupResult->Version : 'Unknown';
+
+            $this->backupStatusData[$server->id] = [
+                'version' => $serverVersion,
+                'backups' => []
+            ];
 
             foreach ($serverBackups as $backup) {
                 $backupResults = $server->backupResults()
@@ -83,7 +122,7 @@ class BackupStatus extends Component
                     ];
                 }
 
-                $this->backupStatusData[$server->id][$backup->backup_id] = [
+                $this->backupStatusData[$server->id]['backups'][$backup->backup_id] = [
                     'name' => $backup->backup_name,
                     'status' => $backupStatus
                 ];
@@ -91,9 +130,31 @@ class BackupStatus extends Component
         }
     }
 
-
     public function render()
     {
-        return view('livewire.dashboard.backup-status');
+        $latestBackupResults = BackupResult::whereIn('backup_server_id', $this->backupServers->pluck('id'))
+            ->with('backupServer')
+            ->orderBy('EndTime', 'desc')
+            ->paginate(5);
+
+        return view('livewire.dashboard.backup-status', [
+            'latestBackupResults' => $latestBackupResults,
+        ]);
+    }
+
+    public function updatedSelectedServerId()
+    {
+        $this->resetPage();
+    }
+
+    private function formatSize($bytes)
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $i = 0;
+        while ($bytes >= 1024 && $i < count($units) - 1) {
+            $bytes /= 1024;
+            $i++;
+        }
+        return round($bytes, 2) . ' ' . $units[$i];
     }
 }
