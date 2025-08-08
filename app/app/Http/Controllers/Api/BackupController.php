@@ -21,35 +21,7 @@ class BackupController extends Controller
 
         $validator = Validator::make($request->all(), [
             'Data' => 'required|array',
-            'Data.DeletedFiles' => 'required|integer',
-            'Data.DeletedFolders' => 'required|integer',
-            'Data.ModifiedFiles' => 'required|integer',
-            'Data.ExaminedFiles' => 'required|integer',
-            'Data.OpenedFiles' => 'required|integer',
-            'Data.AddedFiles' => 'required|integer',
-            'Data.SizeOfModifiedFiles' => 'required|integer',
-            'Data.SizeOfAddedFiles' => 'required|integer',
-            'Data.SizeOfExaminedFiles' => 'required|integer',
-            'Data.SizeOfOpenedFiles' => 'required|integer',
-            'Data.NotProcessedFiles' => 'required|integer',
-            'Data.AddedFolders' => 'required|integer',
-            'Data.TooLargeFiles' => 'required|integer',
-            'Data.FilesWithError' => 'required|integer',
-            'Data.ModifiedFolders' => 'required|integer',
-            'Data.ModifiedSymlinks' => 'required|integer',
-            'Data.AddedSymlinks' => 'required|integer',
-            'Data.DeletedSymlinks' => 'required|integer',
-            'Data.PartialBackup' => 'required|boolean',
-            'Data.Dryrun' => 'required|boolean',
-            'Data.MainOperation' => 'required|string',
-            'Data.CompactResults' => 'nullable',
-            'Data.VacuumResults' => 'nullable',
-            'Data.DeleteResults' => 'nullable',
-            'Data.RepairResults' => 'nullable',
-            'Data.TestResults' => 'required|array',
-            'Data.TestResults.MainOperation' => 'required|string',
-            'Data.TestResults.VerificationsActualLength' => 'required|integer',
-            'Data.TestResults.Verifications' => 'required|array',
+            'Data.MainOperation' => 'required|string|in:Backup,Restore,Test',
             'Data.ParsedResult' => 'required|string',
             'Data.Interrupted' => 'required|boolean',
             'Data.Version' => 'required|string',
@@ -61,7 +33,7 @@ class BackupController extends Controller
             'Data.ErrorsActualLength' => 'required|integer',
             'Data.BackendStatistics' => 'required|array',
             'Extra' => 'required|array',
-            'Extra.OperationName' => 'required|string',
+            'Extra.OperationName' => 'required|string|in:Backup,Restore,Test',
             'Extra.machine-id' => 'required|string',
             'Extra.machine-name' => 'required|string',
             'Extra.backup-name' => 'required|string',
@@ -77,15 +49,67 @@ class BackupController extends Controller
         $data = $request->input('Data');
         $extra = $request->input('Extra');
 
-        // Store the backup result
+        // Determine the operation type
+        $operationType = $extra['OperationName'];
+
+        // Store the result
         $backupResult = new BackupResult();
         $backupResult->backup_server_id = $server->id;
         $backupResult->fill($data);
         $backupResult->extra = $extra;
+
+        // Set operation-specific fields
+        switch ($operationType) {
+            case 'Backup':
+                $backupResult->DeletedFiles = $data['DeletedFiles'] ?? 0;
+                $backupResult->DeletedFolders = $data['DeletedFolders'] ?? 0;
+                $backupResult->ModifiedFiles = $data['ModifiedFiles'] ?? 0;
+                $backupResult->ExaminedFiles = $data['ExaminedFiles'] ?? 0;
+                $backupResult->OpenedFiles = $data['OpenedFiles'] ?? 0;
+                $backupResult->AddedFiles = $data['AddedFiles'] ?? 0;
+                $backupResult->SizeOfModifiedFiles = $data['SizeOfModifiedFiles'] ?? 0;
+                $backupResult->SizeOfAddedFiles = $data['SizeOfAddedFiles'] ?? 0;
+                $backupResult->SizeOfExaminedFiles = $data['SizeOfExaminedFiles'] ?? 0;
+                $backupResult->SizeOfOpenedFiles = $data['SizeOfOpenedFiles'] ?? 0;
+                $backupResult->NotProcessedFiles = $data['NotProcessedFiles'] ?? 0;
+                $backupResult->AddedFolders = $data['AddedFolders'] ?? 0;
+                $backupResult->TooLargeFiles = $data['TooLargeFiles'] ?? 0;
+                $backupResult->FilesWithError = $data['FilesWithError'] ?? 0;
+                $backupResult->ModifiedFolders = $data['ModifiedFolders'] ?? 0;
+                $backupResult->ModifiedSymlinks = $data['ModifiedSymlinks'] ?? 0;
+                $backupResult->AddedSymlinks = $data['AddedSymlinks'] ?? 0;
+                $backupResult->DeletedSymlinks = $data['DeletedSymlinks'] ?? 0;
+                $backupResult->PartialBackup = $data['PartialBackup'] ?? false;
+                $backupResult->Dryrun = $data['Dryrun'] ?? false;
+                break;
+
+            case 'Restore':
+                // Add any restore-specific fields here if needed
+                break;
+
+            case 'Test':
+                // Add any test-specific fields here if needed
+                $backupResult->TestResults = $data['TestResults'] ?? null;
+                break;
+        }
+
+        // Common fields for all operation types
+        $backupResult->MainOperation = $data['MainOperation'];
+        $backupResult->ParsedResult = $data['ParsedResult'];
+        $backupResult->Interrupted = $data['Interrupted'];
+        $backupResult->Version = $data['Version'];
+        $backupResult->EndTime = $data['EndTime'];
+        $backupResult->BeginTime = $data['BeginTime'];
+        $backupResult->Duration = $data['Duration'];
+        $backupResult->MessagesActualLength = $data['MessagesActualLength'];
+        $backupResult->WarningsActualLength = $data['WarningsActualLength'];
+        $backupResult->ErrorsActualLength = $data['ErrorsActualLength'];
+        $backupResult->BackendStatistics = $data['BackendStatistics'];
+
         $backupResult->save();
 
         return response()->json([
-            'message' => 'Backup result received successfully',
+            'message' => ucfirst($operationType) . ' result received successfully',
             'data' => $backupResult
         ], 201);
     }
