@@ -132,12 +132,15 @@ class BackupStatus extends Component
 
     public function render()
     {
-        $latestBackupResults = BackupResult::whereIn('backup_server_id', $this->backupServers->pluck('id'))
-            ->with('backupServer')
+        $latestBackupResults = BackupResult::with('backupServer')
             ->orderBy('EndTime', 'desc')
-            ->paginate(5);
+            ->take(5)  // Limit to 5 results, adjust as needed
+            ->get();
 
         return view('livewire.dashboard.backup-status', [
+            'backupServers' => $this->backupServers,
+            'statusData' => $this->statusData,
+            'backupStatusData' => $this->backupStatusData,
             'latestBackupResults' => $latestBackupResults,
         ]);
     }
