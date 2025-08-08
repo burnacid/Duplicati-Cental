@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -77,5 +78,15 @@ class BackupResult extends Model
     public function backupServer()
     {
         return $this->belongsTo(BackupServer::class);
+    }
+
+    public function getEndTimeAttribute($value)
+    {
+        return Carbon::parse($value."Z")->setTimezone(config('app.timezone'));
+    }
+
+    public function getBeginTimeAttribute($value)
+    {
+        return Carbon::parse($value."Z")->setTimezone(config('app.timezone'));
     }
 }
