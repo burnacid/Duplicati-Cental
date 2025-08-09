@@ -47,6 +47,12 @@ class BackupResult extends Model
         'backup_name',
         'backup_id',
         'extra',
+        'RestoredFiles',
+        'SizeOfRestoredFiles',
+        'RestoredFolders',
+        'RestoredSymlinks',
+        'PatchedFiles',
+        'log_lines',
     ];
 
     protected $casts = [
@@ -59,6 +65,7 @@ class BackupResult extends Model
         'EndTime' => 'datetime',
         'BeginTime' => 'datetime',
         'extra' => 'array',
+        'log_lines' => 'array',
     ];
 
     protected static function boot()
