@@ -19,6 +19,16 @@ class BackupController extends Controller
             ->where('api_key', $apiKey)
             ->firstOrFail();
 
+        $data = $request->input('Data');
+        $extra = $request->input('Extra');
+        $logLines = $request->input('LogLines', []);
+
+        if($data['MainOperation'] === 'List') {
+            return response()->json([
+                'message' => 'List operations are not supported'
+            ], 201);
+        }
+
         $validator = Validator::make($request->all(), [
             'Data' => 'required|array',
             'Data.MainOperation' => 'required|string|in:Backup,Restore,Test',
@@ -46,9 +56,6 @@ class BackupController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $data = $request->input('Data');
-        $extra = $request->input('Extra');
-
         // Determine the operation type
         $operationType = $extra['OperationName'];
 
@@ -57,6 +64,7 @@ class BackupController extends Controller
         $backupResult->backup_server_id = $server->id;
         $backupResult->fill($data);
         $backupResult->extra = $extra;
+        $backupResult->log_lines = $logLines;
 
         // Set operation-specific fields
         switch ($operationType) {
@@ -84,11 +92,17 @@ class BackupController extends Controller
                 break;
 
             case 'Restore':
-                // Add any restore-specific fields here if needed
+                $backupResult->RestoredFiles = $data['RestoredFiles'] ?? null;
+                $backupResult->SizeOfRestoredFiles = $data['SizeOfRestoredFiles'] ?? null;
+                $backupResult->RestoredFolders = $data['RestoredFolders'] ?? null;
+                $backupResult->RestoredSymlinks = $data['RestoredSymlinks'] ?? null;
+                $backupResult->PatchedFiles = $data['PatchedFiles'] ?? null;
+                $backupResult->DeletedFiles = $data['DeletedFiles'] ?? null;
+                $backupResult->DeletedFolders = $data['DeletedFolders'] ?? null;
+                $backupResult->DeletedSymlinks = $data['DeletedSymlinks'] ?? null;
                 break;
 
             case 'Test':
-                // Add any test-specific fields here if needed
                 $backupResult->TestResults = $data['TestResults'] ?? null;
                 break;
         }

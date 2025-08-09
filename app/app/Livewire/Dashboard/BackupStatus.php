@@ -42,10 +42,10 @@ class BackupStatus extends Component
 
                 if ($dayResults->isEmpty()) {
                     $status = 'gray'; // No backups
-                } elseif ($dayResults->contains('HasErrors', true)) {
+                } elseif ($dayResults->contains('ParsedResult', 'Error')) {
                     $status = 'red'; // At least one backup has errors
-                } elseif ($dayResults->contains('HasWarnings', true)) {
-                    $status = 'yellow'; // No errors, but at least one backup has warnings
+                } elseif ($dayResults->contains('ParsedResult', 'Warning')) {
+                    $status = 'orange'; // No errors, but at least one backup has warnings
                 } else {
                     $status = 'green'; // All backups successful
                 }
@@ -108,10 +108,10 @@ class BackupStatus extends Component
 
                 $backupStatus = [];
                 foreach ($backupResults as $result) {
-                    if ($result->HasErrors) {
+                    if ($result->ParsedResult == 'Error') {
                         $status = 'red';
-                    } elseif ($result->HasWarnings) {
-                        $status = 'yellow';
+                    } elseif ($result->ParsedResult == 'Warning') {
+                        $status = 'orange';
                     } else {
                         $status = 'green';
                     }
