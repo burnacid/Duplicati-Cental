@@ -108,7 +108,7 @@ class BackupStatus extends Component
 
                 $backupStatus = [];
                 foreach ($backupResults as $result) {
-                    if ($result->ParsedResult == 'Error') {
+                    if ($result->ParsedResult == 'Fatal') {
                         $status = 'red';
                     } elseif ($result->ParsedResult == 'Warning') {
                         $status = 'orange';
