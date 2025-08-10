@@ -47,7 +47,7 @@ class BackupStatus extends Component
                 } elseif ($dayResults->contains('ParsedResult', 'Warning')) {
                     $status = 'orange'; // No errors, but at least one backup has warnings
                 } else {
-                    $status = 'green'; // All backups successful
+                    $status = '#5cdd8b'; // All backups successful
                 }
 
                 $serverData[] = [
@@ -113,7 +113,7 @@ class BackupStatus extends Component
                     } elseif ($result->ParsedResult == 'Warning') {
                         $status = 'orange';
                     } else {
-                        $status = 'green';
+                        $status = '#5cdd8b';
                     }
 
                     $backupStatus[] = [
