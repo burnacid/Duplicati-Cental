@@ -1,7 +1,7 @@
 <div class="mt-8">
     <h2 class="text-2xl font-semibold mb-4">Backup Status</h2>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
         @foreach ($backupServers as $server)
             <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm rounded-lg p-6">
                 <h3 class="text-xl font-semibold mb-4">{{ $server->name }}</h3>
