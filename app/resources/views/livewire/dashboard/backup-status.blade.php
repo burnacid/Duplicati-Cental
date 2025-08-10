@@ -1,7 +1,7 @@
 <div class="mt-8">
     <h2 class="text-2xl font-semibold mb-4">Backup Status</h2>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
         @foreach ($backupServers as $server)
             <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm rounded-lg p-6">
                 <h3 class="text-xl font-semibold mb-4">{{ $server->name }}</h3>
@@ -15,7 +15,7 @@
                     <div class="flex gap-0.5">
                         @foreach ($statusData[$server->id] as $day)
                             <div
-                                class="flex-grow h-8 rounded-sm"
+                                class="flex-grow h-7 m-0.5 my-2 rounded-sm transition-all duration-200 ease-in-out hover:h-11 hover:p-0.5 hover:m-0 hover:rounded-xl"
                                 style="background-color: {{ $day['status'] }};"
                                 title="{{ $day['date'] }}"
                             ></div>
@@ -37,14 +37,14 @@
                                     @endphp
                                     @for ($i = 0; $i < $missingCount; $i++)
                                         <div
-                                            class="flex-grow h-6 rounded-sm"
+                                            class="flex-grow h-7 m-0.5 my-2 rounded-sm transition-all duration-200 ease-in-out hover:h-11 hover:p-0.5 hover:m-0 hover:rounded-xl"
                                             style="background-color: #808080;"
                                             title="No data"
                                         ></div>
                                     @endfor
                                     @foreach ($statuses as $status)
                                         <div
-                                            class="flex-grow h-6 rounded-sm"
+                                            class="flex-grow h-7 m-0.5 my-2 rounded-sm transition-all duration-200 ease-in-out hover:h-11 hover:p-0.5 hover:m-0 hover:rounded-xl"
                                             style="background-color: {{ $status['status'] }};"
                                             title="{{ $status['date'] }}"
                                         ></div>
@@ -79,7 +79,7 @@
                 </thead>
                 <tbody class="bg-white dark:bg-zinc-900 divide-y divide-gray-200 dark:divide-gray-700">
                 @forelse ($latestBackupResults as $result)
-                    <tr>
+                    <tr class="cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800" onclick="window.location='{{ route('backup-detail', $result->id) }}'">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                             {{ $result->backupServer->name }} - {{ $result->backup_name }}
                         </td>
@@ -116,29 +116,31 @@
 
         <div class="lg:hidden space-y-4"> <!-- Div layout for small screens -->
             @forelse ($latestBackupResults as $result)
-                <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h4 class="text-lg font-semibold">{{ $result->backupServer->name }} - {{ $result->backup_name }}</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                                End Time: {{ $result->EndTime->format('Y-m-d H:i:s') }}
-                                ({{ $result->EndTime->diffForHumans() }})
-                            </p>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                                Duration: {{ $this->formatDuration($result->Duration) }}
-                            </p>
+                <a href="{{ route('backup-detail', $result->id) }}" class="block">
+                    <div class="border-b border-gray-200 dark:border-gray-700 pb-4 hover:bg-gray-50 dark:hover:bg-zinc-800">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="text-lg font-semibold">{{ $result->backupServer->name }} - {{ $result->backup_name }}</h4>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                                    End Time: {{ $result->EndTime->format('Y-m-d H:i:s') }}
+                                    ({{ $result->EndTime->diffForHumans() }})
+                                </p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                                    Duration: {{ $this->formatDuration($result->Duration) }}
+                                </p>
+                            </div>
+                            <div class="text-right">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $result->ParsedResult == 'Fatal' ? 'bg-red-100 text-red-800' : ($result->ParsedResult == 'Warning' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800') }}">
+                                {{ $result->ParsedResult }}
+                            </span>
+                            </div>
                         </div>
-                        <div class="text-right">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $result->ParsedResult == 'Fatal' ? 'bg-red-100 text-red-800' : ($result->ParsedResult == 'Warning' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800') }}">
-                            {{ $result->ParsedResult }}
-                        </span>
+                        <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                            <p>Source Size: {{ $this->formatSize($result->SizeOfExaminedFiles) }}</p>
+                            <p>Destination Size: {{ $this->formatSize($result->BackendStatistics['KnownFileSize'] ?? 0) }}</p>
                         </div>
                     </div>
-                    <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                        <p>Source Size: {{ $this->formatSize($result->SizeOfExaminedFiles) }}</p>
-                        <p>Destination Size: {{ $this->formatSize($result->BackendStatistics['KnownFileSize'] ?? 0) }}</p>
-                    </div>
-                </div>
+                </a>
             @empty
                 <p class="text-gray-600 dark:text-gray-400">No backup results found.</p>
             @endforelse
