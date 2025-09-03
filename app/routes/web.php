@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\BackupController;
+use App\Http\Controllers\NotificationChannelController;
 use App\Livewire\BackupDetail;
 use App\Livewire\BackupResults;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +28,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/backup-servers/{backupServer}/edit', BackupServersEdit::class)->name('backup-servers.edit');
     Route::get('/backup-results', BackupResults::class)->name('backup-results');
     Route::get('/backup-detail/{id}', BackupDetail::class)->name('backup-detail');
+    Route::get('/backups', \App\Livewire\Backups\Index::class)->name('backups');
+    Route::resource('notification-channels', NotificationChannelController::class);
 });
 
 require __DIR__.'/auth.php';

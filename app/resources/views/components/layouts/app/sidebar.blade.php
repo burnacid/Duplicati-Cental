@@ -18,7 +18,12 @@
 
                 <flux:navlist.group :heading="__('Backups')" class="grid">
                     <flux:navlist.item icon="archive-box" :href="route('backup-results')" :current="request()->routeIs('backup-results')" wire:navigate>{{ __('Backup Results') }}</flux:navlist.item>
+                    <flux:navlist.item icon="document-duplicate" :href="route('backups')" :current="request()->routeIs('backups')" wire:navigate>{{ __('Backup Management') }}</flux:navlist.item>
                     <flux:navlist.item icon="server-stack" :href="route('backup-servers.index')" :current="request()->routeIs('backup-servers.index')" wire:navigate>{{ __('Backup Servers') }}</flux:navlist.item>
+                </flux:navlist.group>
+
+                <flux:navlist.group :heading="__('Notifications')" class="grid">
+                    <flux:navlist.item icon="bell" :href="route('notification-channels.index')" :current="request()->routeIs('notification-channels.*')" wire:navigate>{{ __('Notification Channels') }}</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
 
@@ -133,5 +138,7 @@
         {{ $slot }}
 
         @fluxScripts
+
+        @stack('scripts')
     </body>
 </html>
