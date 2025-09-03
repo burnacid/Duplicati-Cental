@@ -28,6 +28,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/backup-servers/{backupServer}/edit', BackupServersEdit::class)->name('backup-servers.edit');
     Route::get('/backup-results', BackupResults::class)->name('backup-results');
     Route::get('/backup-detail/{id}', BackupDetail::class)->name('backup-detail');
+    Route::get('/backups', \App\Livewire\Backups\Index::class)->name('backups');
     Route::resource('notification-channels', NotificationChannelController::class);
 });
 
