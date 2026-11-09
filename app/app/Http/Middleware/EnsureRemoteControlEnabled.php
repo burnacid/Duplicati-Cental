@@ -1,0 +1,20 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+/**
+ * Hides every remote-control route (404) when REMOTE_CONTROL_ENABLED=false.
+ */
+class EnsureRemoteControlEnabled
+{
+    public function handle(Request $request, Closure $next): Response
+    {
+        abort_unless(config('remote_control.enabled'), 404);
+
+        return $next($request);
+    }
+}

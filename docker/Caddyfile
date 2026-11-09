@@ -1,0 +1,40 @@
+# FrankenPHP (Caddy + PHP) configuration for Duplicati Central.
+#
+# By default the app listens on plain HTTP port 8181 (put your own reverse proxy in front for HTTPS).
+# Set SERVER_NAME to a public domain (e.g. central.example.com) and publish ports 80 and 443 to let
+# Caddy obtain a Let's Encrypt certificate automatically. Passkeys require HTTPS.
+{
+	frankenphp
+	admin off
+
+	log {
+		output stdout
+		format console
+		level WARN
+	}
+}
+
+{$SERVER_NAME::8181} {
+	root * /app/public
+	encode zstd br gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options SAMEORIGIN
+		-Server
+	}
+
+	# Built assets have content hashes in their names: cache them for a year.
+	@build path /build/*
+	header @build Cache-Control "public, max-age=31536000, immutable"
+
+	# Remote-control websocket (php artisan remote-control:serve), served on the same port.
+	handle /api/remote-control/ws* {
+		reverse_proxy 127.0.0.1:{$REMOTE_CONTROL_WS_PORT:8090}
+	}
+
+	handle {
+		php_server
+	}
+}

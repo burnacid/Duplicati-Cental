@@ -2,11 +2,17 @@
 
 namespace App\Providers;
 
-use App\Services\NotificationService;
+use App\Models\BackupServer;
 use App\Models\NotificationChannel;
+use App\Policies\BackupServerPolicy;
 use App\Policies\NotificationChannelPolicy;
-use Illuminate\Support\ServiceProvider;
+use App\Services\BackupHealthService;
+use App\Services\NotificationService;
+use App\Services\RemoteControlConnectionHandler;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,9 +21,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(NotificationService::class, function ($app) {
-            return new NotificationService();
-        });
+        $this->app->singleton(NotificationService::class);
+
+        $this->app->singleton(RemoteControlConnectionHandler::class);
+
+        // One instance per request/job, so dashboard components share its memoized data.
+        $this->app->scoped(BackupHealthService::class);
     }
 
     /**
@@ -26,5 +35,17 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(NotificationChannel::class, NotificationChannelPolicy::class);
+        Gate::policy(BackupServer::class, BackupServerPolicy::class);
+
+        if ($proxies = config('app.trusted_proxies')) {
+            TrustProxies::at($proxies === '*' ? '*' : array_map('trim', explode(',', $proxies)));
+        }
+
+        // Re-apply these on Livewire action requests too, not only on the first page load.
+        Livewire::addPersistentMiddleware([
+            \Illuminate\Auth\Middleware\RequirePassword::class,
+            \App\Http\Middleware\EnsureTwoFactorConfigured::class,
+            \App\Http\Middleware\EnsureRemoteControlEnabled::class,
+        ]);
     }
 }

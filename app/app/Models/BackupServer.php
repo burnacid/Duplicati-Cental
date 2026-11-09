@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,21 +11,24 @@ use Illuminate\Support\Str;
 
 class BackupServer extends Model
 {
-    use HasFactory, hasUuids;
+    use HasFactory, HasUuids;
 
     protected $fillable = ['name', 'description', 'user_id'];
 
-    protected $keyType = 'string';
-    public $incrementing = false;
+    protected $hidden = ['api_key'];
 
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($model) {
-            $model->id = Str::uuid();
             $model->api_key = Str::random(64);
         });
+    }
+
+    public function scopeOwnedBy(Builder $query, User|string|null $user): Builder
+    {
+        return $query->where('user_id', $user instanceof User ? $user->id : $user);
     }
 
     public function user()
@@ -39,13 +43,6 @@ class BackupServer extends Model
 
     public function getBackupServerUrlAttribute()
     {
-        return url::to('/').'/api/backup-servers/'.$this->id.'/'.$this->api_key.'/backup-result';
-    }
-
-    public function getBackupsAttribute()
-    {
-        $Backups = BackupResult::Where('backup_server_id', $this->id)->select('backup_name', 'backup_id')->distinct()->get();
-
-        return $Backups;
+        return URL::to('/').'/api/backup-servers/'.$this->id.'/'.$this->api_key.'/backup-result';
     }
 }

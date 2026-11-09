@@ -2,32 +2,71 @@
 
 namespace App\Livewire\BackupServers;
 
+use App\Models\BackupResult;
 use App\Models\BackupServer;
+use Flux\Flux;
+use Illuminate\Support\Str;
 use Livewire\Component;
 
 class Index extends Component
 {
-    public $deleteId = null;
+    public ?string $deleteId = null;
+    public ?string $regenerateId = null;
 
     public function render()
     {
+        $servers = BackupServer::ownedBy(auth()->user())
+            ->select('backup_servers.*')
+            ->addSelect([
+                'backup_jobs_count' => BackupResult::selectRaw('COUNT(DISTINCT backup_id)')->whereColumn('backup_server_id', 'backup_servers.id'),
+                'last_report_at' => BackupResult::selectRaw('MAX(EndTime)')->whereColumn('backup_server_id', 'backup_servers.id'),
+            ])
+            ->orderBy('name')
+            ->get();
+
         return view('livewire.backup-servers.index', [
-            'backupServers' => BackupServer::all(),
+            'backupServers' => $servers,
         ]);
     }
 
-    public function confirmDelete($id)
+    public function confirmDelete(string $id): void
     {
         $this->deleteId = $id;
-        $this->dispatch('openDeleteModal');
+        Flux::modal('delete-server')->show();
     }
 
-    public function deleteServer($serverId)
+    public function deleteServer(): void
     {
-        $server = BackupServer::find($serverId);
+        $server = $this->deleteId ? BackupServer::ownedBy(auth()->user())->find($this->deleteId) : null;
+
         if ($server) {
+            $this->authorize('delete', $server);
             $server->delete();
-            session()->flash('message', 'Backup server deleted successfully.');
+            session()->flash('message', 'Backup server deleted.');
         }
+
+        $this->deleteId = null;
+        Flux::modal('delete-server')->close();
+    }
+
+    public function confirmRegenerate(string $id): void
+    {
+        $this->regenerateId = $id;
+        Flux::modal('regenerate-key')->show();
+    }
+
+    public function regenerateKey(): void
+    {
+        $server = $this->regenerateId ? BackupServer::ownedBy(auth()->user())->find($this->regenerateId) : null;
+
+        if ($server) {
+            $this->authorize('update', $server);
+            $server->api_key = Str::random(64);
+            $server->save();
+            session()->flash('message', "New API key generated for {$server->name}. Update the URL in Duplicati.");
+        }
+
+        $this->regenerateId = null;
+        Flux::modal('regenerate-key')->close();
     }
 }

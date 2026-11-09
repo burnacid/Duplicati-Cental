@@ -3,128 +3,68 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendBackupResultNotification;
 use App\Models\BackupServer;
-use App\Models\BackupResult;
+use App\Services\BackupResultFactory;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class BackupController extends Controller
 {
-    public function storeBackupResult(Request $request, $serverId, $apiKey)
+    public function storeBackupResult(Request $request, string $serverId, string $apiKey, BackupResultFactory $factory): JsonResponse
     {
-        Log::info($request->all());
-
         $server = BackupServer::where('id', $serverId)
             ->where('api_key', $apiKey)
             ->firstOrFail();
 
-        $data = $request->input('Data');
-        $extra = $request->input('Extra');
-        $logLines = $request->input('LogLines', []);
-
-        if($data['MainOperation'] === 'List') {
-            return response()->json([
-                'message' => 'List operations are not supported'
-            ], 201);
-        }
-
         $validator = Validator::make($request->all(), [
             'Data' => 'required|array',
-            'Data.MainOperation' => 'required|string|in:Backup,Restore,Test',
-            'Data.ParsedResult' => 'required|string',
-            'Data.Interrupted' => 'required|boolean',
-            'Data.Version' => 'required|string',
+            'Data.MainOperation' => 'required|string|max:64',
+            'Data.ParsedResult' => 'required|string|max:32',
+            'Data.Interrupted' => 'nullable|boolean',
+            'Data.Version' => 'nullable|string|max:120',
             'Data.EndTime' => 'required|date',
             'Data.BeginTime' => 'required|date',
-            'Data.Duration' => 'required|string',
-            'Data.MessagesActualLength' => 'required|integer',
-            'Data.WarningsActualLength' => 'required|integer',
-            'Data.ErrorsActualLength' => 'required|integer',
-            'Data.BackendStatistics' => 'required|array',
+            'Data.Duration' => 'nullable|string|max:64',
+            'Data.MessagesActualLength' => 'nullable|integer',
+            'Data.WarningsActualLength' => 'nullable|integer',
+            'Data.ErrorsActualLength' => 'nullable|integer',
+            'Data.BackendStatistics' => 'nullable|array',
             'Extra' => 'required|array',
-            'Extra.OperationName' => 'required|string|in:Backup,Restore,Test',
-            'Extra.machine-id' => 'required|string',
-            'Extra.machine-name' => 'required|string',
-            'Extra.backup-name' => 'required|string',
-            'Extra.backup-id' => 'required|string',
+            'Extra.OperationName' => 'nullable|string|max:64',
+            'Extra.machine-id' => 'required|string|max:255',
+            'Extra.machine-name' => 'required|string|max:255',
+            'Extra.backup-name' => 'required|string|max:255',
+            'Extra.backup-id' => 'required|string|max:255',
+            'LogLines' => 'nullable|array',
         ]);
 
         if ($validator->fails()) {
-            Log::info('Validation failed');
-            Log::info($validator->errors());
+            Log::info('Backup result rejected', [
+                'backup_server_id' => $server->id,
+                'errors' => $validator->errors()->toArray(),
+            ]);
+
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Determine the operation type
-        $operationType = $extra['OperationName'];
+        $data = $request->input('Data');
+        $operation = $data['MainOperation'];
 
-        // Store the result
-        $backupResult = new BackupResult();
-        $backupResult->backup_server_id = $server->id;
-        $backupResult->fill($data);
-        $backupResult->extra = $extra;
-        $backupResult->log_lines = $logLines;
-
-        // Set operation-specific fields
-        switch ($operationType) {
-            case 'Backup':
-                $backupResult->DeletedFiles = $data['DeletedFiles'] ?? 0;
-                $backupResult->DeletedFolders = $data['DeletedFolders'] ?? 0;
-                $backupResult->ModifiedFiles = $data['ModifiedFiles'] ?? 0;
-                $backupResult->ExaminedFiles = $data['ExaminedFiles'] ?? 0;
-                $backupResult->OpenedFiles = $data['OpenedFiles'] ?? 0;
-                $backupResult->AddedFiles = $data['AddedFiles'] ?? 0;
-                $backupResult->SizeOfModifiedFiles = $data['SizeOfModifiedFiles'] ?? 0;
-                $backupResult->SizeOfAddedFiles = $data['SizeOfAddedFiles'] ?? 0;
-                $backupResult->SizeOfExaminedFiles = $data['SizeOfExaminedFiles'] ?? 0;
-                $backupResult->SizeOfOpenedFiles = $data['SizeOfOpenedFiles'] ?? 0;
-                $backupResult->NotProcessedFiles = $data['NotProcessedFiles'] ?? 0;
-                $backupResult->AddedFolders = $data['AddedFolders'] ?? 0;
-                $backupResult->TooLargeFiles = $data['TooLargeFiles'] ?? 0;
-                $backupResult->FilesWithError = $data['FilesWithError'] ?? 0;
-                $backupResult->ModifiedFolders = $data['ModifiedFolders'] ?? 0;
-                $backupResult->ModifiedSymlinks = $data['ModifiedSymlinks'] ?? 0;
-                $backupResult->AddedSymlinks = $data['AddedSymlinks'] ?? 0;
-                $backupResult->DeletedSymlinks = $data['DeletedSymlinks'] ?? 0;
-                $backupResult->PartialBackup = $data['PartialBackup'] ?? false;
-                $backupResult->Dryrun = $data['Dryrun'] ?? false;
-                break;
-
-            case 'Restore':
-                $backupResult->RestoredFiles = $data['RestoredFiles'] ?? null;
-                $backupResult->SizeOfRestoredFiles = $data['SizeOfRestoredFiles'] ?? null;
-                $backupResult->RestoredFolders = $data['RestoredFolders'] ?? null;
-                $backupResult->RestoredSymlinks = $data['RestoredSymlinks'] ?? null;
-                $backupResult->PatchedFiles = $data['PatchedFiles'] ?? null;
-                $backupResult->DeletedFiles = $data['DeletedFiles'] ?? null;
-                $backupResult->DeletedFolders = $data['DeletedFolders'] ?? null;
-                $backupResult->DeletedSymlinks = $data['DeletedSymlinks'] ?? null;
-                break;
-
-            case 'Test':
-                $backupResult->TestResults = $data['TestResults'] ?? null;
-                break;
+        if ($factory->isIgnoredOperation($operation)) {
+            return response()->json(['message' => 'List operations are not stored'], 200);
         }
 
-        // Common fields for all operation types
-        $backupResult->MainOperation = $data['MainOperation'];
-        $backupResult->ParsedResult = $data['ParsedResult'];
-        $backupResult->Interrupted = $data['Interrupted'];
-        $backupResult->Version = $data['Version'];
-        $backupResult->EndTime = $data['EndTime'];
-        $backupResult->BeginTime = $data['BeginTime'];
-        $backupResult->Duration = $data['Duration'];
-        $backupResult->MessagesActualLength = $data['MessagesActualLength'];
-        $backupResult->WarningsActualLength = $data['WarningsActualLength'];
-        $backupResult->ErrorsActualLength = $data['ErrorsActualLength'];
-        $backupResult->BackendStatistics = $data['BackendStatistics'];
-
+        $backupResult = $factory->make($server, $data, $request->input('Extra'), $request->input('LogLines', []) ?? []);
         $backupResult->save();
 
+        SendBackupResultNotification::dispatch($backupResult->id);
+
         return response()->json([
-            'message' => ucfirst($operationType) . ' result received successfully',
-            'data' => $backupResult
+            'message' => ucfirst($operation) . ' result received successfully',
+            'id' => $backupResult->id,
         ], 201);
     }
 }

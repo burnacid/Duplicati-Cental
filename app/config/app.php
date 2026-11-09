@@ -16,6 +16,13 @@ return [
     'name' => env('APP_NAME', 'Laravel'),
 
     /*
+    | Application version. Docker images get APP_VERSION from the release build;
+    | in development it is read from the VERSION file in the repository root.
+    */
+
+    'version' => env('APP_VERSION') ?: (is_file(base_path('../VERSION')) ? trim((string) file_get_contents(base_path('../VERSION'))) : 'dev'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
@@ -66,6 +73,20 @@ return [
     */
 
     'timezone' => env('APP_TIMEZONE', 'UTC'),
+
+    /*
+    | Self-registration. The first account can always be created; after that
+    | sign-up is closed unless REGISTRATION_ENABLED=true.
+    */
+
+    'registration_enabled' => (bool) env('REGISTRATION_ENABLED', false),
+
+    /*
+    | Reverse proxies (Caddy, Traefik, nginx) in front of the app: their IPs,
+    | comma-separated, or "*". Needed so HTTPS and client IPs are detected.
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
 
     /*
     |--------------------------------------------------------------------------

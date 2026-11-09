@@ -1,0 +1,11 @@
+# Minimal OpenSSL configuration used only to generate the remote-control RSA key
+# when PHP has no openssl.cnf of its own (common on Windows installs).
+HOME = .
+
+[ req ]
+default_bits = 2048
+distinguished_name = req_distinguished_name
+prompt = no
+
+[ req_distinguished_name ]
+CN = Duplicati Central

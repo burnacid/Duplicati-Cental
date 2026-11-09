@@ -64,3 +64,10 @@ select:focus[data-flux-control] {
 /* \[:where(&)\]:size-4 {
     @apply size-4;
 } */
+
+/* Dashboard status blocks: rendered thousands of times, so keep the markup small. */
+@layer components {
+    .status-block {
+        @apply flex-grow h-7 my-2 rounded-sm transition-transform duration-200 ease-in-out hover:scale-y-150;
+    }
+}
