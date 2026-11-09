@@ -34,7 +34,8 @@ Scheduler (routes/console.php)
 - **API routes** (`routes/api.php`): unauthenticated; backup results authenticate via the `{apiKey}` path segment. Remote-control machines are claimed only through the authenticated web flow (`RemoteControlClaimController`).
 - **Remote control switch**: `REMOTE_CONTROL_ENABLED` (`config('remote_control.enabled')`, default true). Remote-control routes use the `remote-control` middleware (404 when off); shared screens check the config before showing remote-control UI. Guard any new remote-control feature the same way.
 - **History import**: `RemoteLogImportService` pages through `GET /api/v1/backup/{id}/log` on a connected instance and stores `Result` entries as `BackupResult` (`source = 'remote-log'`, no notifications). Duplicates are matched on server + job (`DB-<id>`) + `BeginTime` (±2 s). Started from the machine page (`ImportRemoteControlLogs` job, status in cache) or `php artisan remote-control:import-logs {registration?} --days=30`. Both reports and imports go through `BackupResultFactory`.
-- Docker runs four supervisord programs: web, remote-control websocket, `queue:work` and `schedule:work`. `entrypoint.sh` generates and persists `APP_KEY` in `storage/` when it is not set.
+- **Docker**: multi-stage build (composer → node → `dunglas/frankenphp`). supervisord runs FrankenPHP (`docker/Caddyfile`: app on `:8181`, `/api/remote-control/ws` proxied to the websocket server on 8090, optional auto-HTTPS via `SERVER_NAME`), the remote-control websocket, `queue:work` and `schedule:work`. `entrypoint.sh` creates the storage layout, generates/persists `APP_KEY`, moves a legacy SQLite file into `/app/storage/database.sqlite`, runs `php artisan optimize` and migrations. Because config is cached in the container, never call `env()` outside `config/*.php`.
+- Container files must keep LF line endings (`.gitattributes`).
 
 ## Key Models & Conventions
 

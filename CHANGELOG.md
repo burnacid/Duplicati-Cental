@@ -26,6 +26,13 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ### Changed
 - Docker image: generates and keeps its own `APP_KEY`, runs queue worker and scheduler, installs without dev dependencies, includes the MySQL driver, and keeps data in the `/app/storage` volume.
+- Docker image now uses FrankenPHP (Caddy) instead of `php artisan serve`: concurrent requests, OPcache, compression, long-term caching of assets, security headers and a health check. Image size halved (about 1 GB).
+- The remote-control websocket is also served on port 8181 (`/api/remote-control/ws`); port 8090 still works.
+- Optional automatic HTTPS: set `SERVER_NAME` to your domain and publish ports 80 and 443.
+- SQLite database moved to `/app/storage/database.sqlite` (inside the volume); an existing database at the old location is moved on start.
+- Logs rotate daily and are kept for 14 days.
+- `TRUSTED_PROXIES` setting for running behind a reverse proxy.
+- Dependencies updated (Laravel 12.71, Flux 2.21, Vite 6.4, Tailwind 4.3); no known security advisories remain.
 - Faster pages with large histories: log lines are stored in their own table and the dashboard loads in a few queries.
 - User interface moved to Flux components with consistent status colours; Error and Fatal are both shown as failures.
 

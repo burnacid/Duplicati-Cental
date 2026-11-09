@@ -9,6 +9,7 @@ use App\Policies\NotificationChannelPolicy;
 use App\Services\BackupHealthService;
 use App\Services\NotificationService;
 use App\Services\RemoteControlConnectionHandler;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
@@ -35,6 +36,10 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(NotificationChannel::class, NotificationChannelPolicy::class);
         Gate::policy(BackupServer::class, BackupServerPolicy::class);
+
+        if ($proxies = config('app.trusted_proxies')) {
+            TrustProxies::at($proxies === '*' ? '*' : array_map('trim', explode(',', $proxies)));
+        }
 
         // Re-apply these on Livewire action requests too, not only on the first page load.
         Livewire::addPersistentMiddleware([

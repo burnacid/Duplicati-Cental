@@ -82,6 +82,13 @@ return [
     'registration_enabled' => (bool) env('REGISTRATION_ENABLED', false),
 
     /*
+    | Reverse proxies (Caddy, Traefik, nginx) in front of the app: their IPs,
+    | comma-separated, or "*". Needed so HTTPS and client IPs are detected.
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
