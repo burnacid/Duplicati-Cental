@@ -29,7 +29,9 @@ new #[Layout('components.layouts.auth')] class extends Component {
 
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+        $credentials = ['email' => $this->email, 'password' => $this->password];
+
+        if (! Auth::validate($credentials)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -38,6 +40,24 @@ new #[Layout('components.layouts.auth')] class extends Component {
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        /** @var \App\Models\User $user */
+        $user = Auth::getLastAttempted();
+
+        // With TOTP enabled the password alone is not enough: ask for a code first.
+        if ($user->hasTwoFactorEnabled()) {
+            Session::put('login.two_factor', [
+                'id' => $user->getKey(),
+                'remember' => $this->remember,
+                'expires_at' => now()->addMinutes(5)->timestamp,
+            ]);
+
+            $this->redirect(route('two-factor.challenge', absolute: false), navigate: true);
+
+            return;
+        }
+
+        Auth::login($user, $this->remember);
         Session::regenerate();
 
         $this->redirectIntended(default: route('home', absolute: false), navigate: true);
@@ -115,6 +135,8 @@ new #[Layout('components.layouts.auth')] class extends Component {
             <flux:button variant="primary" type="submit" class="w-full">{{ __('Log in') }}</flux:button>
         </div>
     </form>
+
+    <x-passkey-login />
 
     @if (Route::has('register') && \App\Models\User::registrationOpen())
         <div class="space-x-1 rtl:space-x-reverse text-center text-sm text-zinc-600 dark:text-zinc-400">

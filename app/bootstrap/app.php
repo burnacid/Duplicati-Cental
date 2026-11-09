@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'remote-control' => \App\Http\Middleware\EnsureRemoteControlEnabled::class,
+            'two-factor.required' => \App\Http\Middleware\EnsureTwoFactorConfigured::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

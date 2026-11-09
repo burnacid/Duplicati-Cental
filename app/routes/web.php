@@ -14,14 +14,18 @@ use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/', function () {
-        return view('dashboard');
-    })->name('home');
+    // Settings stay reachable when REQUIRE_2FA forces users to set up 2FA first.
     Route::redirect('settings', 'settings/profile');
-
     Volt::route('settings/profile', 'settings.profile')->name('settings.profile');
     Volt::route('settings/password', 'settings.password')->name('settings.password');
     Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');
+    Volt::route('settings/security', 'settings.security')->middleware('password.confirm')->name('settings.security');
+});
+
+Route::middleware(['auth', 'two-factor.required'])->group(function () {
+    Route::get('/', function () {
+        return view('dashboard');
+    })->name('home');
 
     Route::get('/backup-servers', BackupServersIndex::class)->name('backup-servers.index');
     Route::get('/backup-servers/create', BackupServersCreate::class)->name('backup-servers.create');

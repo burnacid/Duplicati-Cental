@@ -11,6 +11,7 @@ use App\Services\NotificationService;
 use App\Services\RemoteControlConnectionHandler;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -34,5 +35,12 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(NotificationChannel::class, NotificationChannelPolicy::class);
         Gate::policy(BackupServer::class, BackupServerPolicy::class);
+
+        // Re-apply these on Livewire action requests too, not only on the first page load.
+        Livewire::addPersistentMiddleware([
+            \Illuminate\Auth\Middleware\RequirePassword::class,
+            \App\Http\Middleware\EnsureTwoFactorConfigured::class,
+            \App\Http\Middleware\EnsureRemoteControlEnabled::class,
+        ]);
     }
 }

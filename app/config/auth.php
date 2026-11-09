@@ -19,6 +19,13 @@ return [
     ],
 
     /*
+    | When true, every user must set up an authenticator app (TOTP) or a passkey
+    | before they can use the application. Otherwise it is optional per user.
+    */
+
+    'require_two_factor' => (bool) env('REQUIRE_2FA', false),
+
+    /*
     |--------------------------------------------------------------------------
     | Authentication Guards
     |--------------------------------------------------------------------------
