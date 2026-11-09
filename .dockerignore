@@ -7,9 +7,11 @@
 **/.DS_Store
 dupliciti
 release.ps1
+docker-compose.yml
 
 # Local configuration and secrets
 .env
+.env.docker*
 app/.env
 app/.env.*
 !app/.env.example

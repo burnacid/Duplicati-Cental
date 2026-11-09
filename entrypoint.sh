@@ -35,4 +35,7 @@ php artisan optimize --no-interaction
 
 php artisan migrate --force --no-interaction
 
+# First admin from ADMIN_EMAIL / ADMIN_PASSWORD (or ADMIN_PASSWORD_FILE); only when no users exist yet.
+php artisan user:create --from-env --no-interaction
+
 exec "$@"

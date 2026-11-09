@@ -1,0 +1,120 @@
+# Duplicati Central
+#
+#   docker compose up -d
+#
+# Then open http://<this-host>:8181 and create the first account (later sign-ups are closed by default).
+# Settings: copy .env.docker.example to `.env` (read automatically) and adjust it,
+# or use another file with: docker compose --env-file .env.docker up -d
+#
+# Options at the bottom of this file:
+#   A. Automatic HTTPS with Let's Encrypt (needed for passkeys) without a separate reverse proxy.
+#   B. MySQL/MariaDB instead of the built-in SQLite database.
+
+name: duplicati-central
+
+services:
+  app:
+    image: burnacid/duplicati-central:${DUPLICATI_CENTRAL_VERSION:-latest}
+    # To build from this repository instead of pulling the image:
+    # build: .
+    container_name: duplicati-central
+    restart: unless-stopped
+    ports:
+      # Web UI, Duplicati reporting API and the remote-control websocket.
+      - "${HTTP_PORT:-8181}:8181"
+    environment:
+      # The address users and Duplicati instances use to reach this server.
+      # Used for reporting URLs, remote-control links and passkeys.
+      APP_URL: ${APP_URL:-http://localhost:8181}
+      APP_TIMEZONE: ${APP_TIMEZONE:-UTC}
+      # ":8181" = plain HTTP. A domain name enables automatic HTTPS (see option A below).
+      SERVER_NAME: ${SERVER_NAME:-:8181}
+
+      # First admin, created at start-up when there are no users yet. Otherwise the first
+      # person to open /register becomes the admin. Remove the password after the first start.
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+
+      # Accounts: the first account can always be created; set to true to allow more sign-ups.
+      REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-false}
+      # Require every user to set up an authenticator app or a passkey.
+      REQUIRE_2FA: ${REQUIRE_2FA:-false}
+
+      # Remote control of Duplicati instances (registration, run backup, history import).
+      REMOTE_CONTROL_ENABLED: ${REMOTE_CONTROL_ENABLED:-true}
+
+      # Behind your own reverse proxy (Traefik, nginx, Caddy, ...): its IP(s) or "*".
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+
+      # How long backup results are kept (days, 0 = forever).
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-365}
+
+      # Email for notification channels without their own SMTP server.
+      MAIL_MAILER: ${MAIL_MAILER:-log}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-duplicati-central@example.com}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Duplicati Central}
+    volumes:
+      # Database, encryption key, remote-control keys, logs and certificates.
+      # Back this up: without it, all data and the remote-control trust are lost.
+      - storage:/app/storage
+
+volumes:
+  storage:
+
+# ---------------------------------------------------------------------------------------------
+# A. Automatic HTTPS (Let's Encrypt) without a separate reverse proxy
+#
+#    Needs a public DNS name pointing to this host and ports 80 and 443 reachable from the internet.
+#    In `.env` set:
+#
+#      SERVER_NAME=central.example.com
+#      APP_URL=https://central.example.com
+#
+#    and in the `app` service replace `ports` with:
+#
+#    ports:
+#      - "80:80"
+#      - "443:443"
+#      - "443:443/udp"     # HTTP/3
+#
+#    Certificates are stored in the `storage` volume.
+#
+# ---------------------------------------------------------------------------------------------
+# B. MySQL / MariaDB instead of SQLite
+#
+#    Add to the `app` service:
+#
+#    environment:
+#      DB_CONNECTION: mysql
+#      DB_HOST: db
+#      DB_PORT: 3306
+#      DB_DATABASE: duplicati_central
+#      DB_USERNAME: duplicati_central
+#      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+#    depends_on:
+#      db:
+#        condition: service_healthy
+#
+#    and this service:
+#
+#  db:
+#    image: mariadb:11
+#    restart: unless-stopped
+#    environment:
+#      MARIADB_DATABASE: duplicati_central
+#      MARIADB_USER: duplicati_central
+#      MARIADB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+#      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+#    volumes:
+#      - db:/var/lib/mysql
+#    healthcheck:
+#      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+#      interval: 10s
+#      retries: 5
+#
+#    and `db:` under `volumes:`.

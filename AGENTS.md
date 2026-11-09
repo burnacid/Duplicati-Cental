@@ -67,6 +67,7 @@ Scheduler (routes/console.php)
 ## Authentication (TOTP & passkeys)
 - **TOTP**: `TwoFactorAuthenticationService` (pragmarx/google2fa, bacon QR). Secret and recovery codes are encrypted casts on `User`; `two_factor_last_timestep` blocks code reuse. Login (`auth/login` Volt) validates the password, then sends TOTP users to `auth/two-factor-challenge` with `session('login.two_factor')` (5 min).
 - **Passkeys**: spatie/laravel-passkeys backend (`Route::passkeys()` in `routes/auth.php`, `HasPasskeys` on `User`), with our own UI: `<x-passkey-login />` on the login page and `App\Livewire\Settings\Passkeys`. `@simplewebauthn/browser` is exposed on `window` in `resources/js/app.js`. Passkeys are passwordless sign-in (they skip TOTP) and need HTTPS; the relying party is the host of `APP_URL` (`PASSKEYS_RP_ID`).
+- Accounts from the CLI: `user:create` (interactive, or `--from-env` reading `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`ADMIN_PASSWORD_FILE` via `getenv()`; run by `entrypoint.sh`, only when no users exist) and `user:reset-password {email} [--disable-2fa]`.
 - Settings → Security (`settings/security`) is behind `password.confirm`. `REQUIRE_2FA=true` (`two-factor.required` middleware) forces users without TOTP/passkey to that page; settings routes stay reachable.
 - Middleware that must also guard Livewire actions is registered with `Livewire::addPersistentMiddleware()` in `AppServiceProvider`.
 
