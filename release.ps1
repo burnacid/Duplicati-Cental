@@ -3,8 +3,9 @@
     Builds and publishes a Duplicati Central release.
 
 .DESCRIPTION
-    1. Checks: clean working tree, on the release branch, up to date with origin,
-       docker and gh available, changelog has entries under "Unreleased".
+    1. Checks: clean working tree, up to date with origin, docker and gh available,
+       changelog has entries under "Unreleased". When you are on another branch, it
+       offers to merge that branch into the release branch (master) and release from there.
     2. Works out the version (VERSION file, -Bump or -Version).
     3. Runs the test suite (skip with -SkipTests).
     4. Updates VERSION and CHANGELOG.md, commits "Release vX.Y.Z" and creates tag vX.Y.Z.
@@ -123,6 +124,11 @@ function Test-TagExists([string] $Tag) {
 Push-Location $root
 $releaseCommitted = $false
 $published = $false
+$merged = $false
+$checkedOutRelease = $false
+$featureBranch = $null
+$branchBefore = $null
+$tag = $null
 
 try {
     # ---------------------------------------------------------------- checks
@@ -138,16 +144,55 @@ try {
     }
     Write-Ok ('git, docker' + $(if ($DryRun) { '' } else { ' and gh' }) + ' available')
 
-    $currentBranch = Get-NativeOutput git @('rev-parse', '--abbrev-ref', 'HEAD')
-    if ($currentBranch -ne $Branch) { throw "You are on '$currentBranch'. Releases are made from '$Branch' (use -Branch to override)." }
-
     $dirty = Get-NativeOutput git @('status', '--porcelain')
-    if ($dirty) { throw "The working tree has uncommitted changes:`n$dirty" }
+    if ($dirty) { throw "The working tree has uncommitted changes. Commit or stash them first:`n$dirty" }
 
-    Invoke-Native git @('fetch', 'origin', $Branch, '--tags') -Quiet | Out-Null
-    $behind = [int] (Get-NativeOutput git @('rev-list', '--count', "HEAD..origin/$Branch"))
-    if ($behind -gt 0) { throw "Your branch is $behind commit(s) behind origin/$Branch. Pull first." }
-    Write-Ok "On $Branch, clean and up to date"
+    Invoke-Native git @('fetch', 'origin', '--tags') -Quiet | Out-Null
+    $remoteBranchExists = [bool] (& git ls-remote --heads origin $Branch 2>$null)
+    $currentBranch = Get-NativeOutput git @('rev-parse', '--abbrev-ref', 'HEAD')
+
+    if ($currentBranch -ne $Branch) {
+        if ($DryRun) {
+            Write-Host "    Note: you are on '$currentBranch'. A real release would first merge it into '$Branch'. The dry run builds '$currentBranch'." -ForegroundColor Yellow
+        } else {
+            $ahead = [int] (Get-NativeOutput git @('rev-list', '--count', "$Branch..$currentBranch"))
+            Write-Host "`nYou are on '$currentBranch' ($ahead commit(s) not in '$Branch'). Releases are made from '$Branch'." -ForegroundColor Yellow
+
+            $merge = $Yes
+            if (-not $merge) {
+                $answer = Read-Host "Merge '$currentBranch' into '$Branch' and release from '$Branch'? [y/N]"
+                $merge = $answer -match '^(y|yes)$'
+            }
+            if (-not $merge) { Write-Host 'Aborted. Nothing was changed.'; return }
+
+            Write-Step "Merging '$currentBranch' into '$Branch'"
+            $featureBranch = $currentBranch
+            Invoke-Native git @('checkout', $Branch) -Quiet | Out-Null
+            $checkedOutRelease = $true
+
+            # Bring the local release branch up to date first (fast-forward only).
+            if ($remoteBranchExists) {
+                & git merge --ff-only "origin/$Branch" *> $null
+                if ($LASTEXITCODE -ne 0) { throw "Local '$Branch' has diverged from origin/$Branch. Sort that out manually first." }
+            }
+
+            $branchBefore = Get-NativeOutput git @('rev-parse', 'HEAD')
+            & git merge --no-ff $featureBranch -m "Merge branch '$featureBranch' into $Branch" *> $null
+            if ($LASTEXITCODE -ne 0) {
+                & git merge --abort *> $null
+                throw "Merging '$featureBranch' into '$Branch' gives conflicts. Merge manually (or update '$featureBranch' from '$Branch') and run the release again."
+            }
+            $merged = $true
+            $currentBranch = $Branch
+            Write-Ok "Merged '$featureBranch' into '$Branch' (not pushed yet)"
+        }
+    }
+
+    if ($currentBranch -eq $Branch -and $remoteBranchExists) {
+        $behind = [int] (Get-NativeOutput git @('rev-list', '--count', "HEAD..origin/$Branch"))
+        if ($behind -gt 0) { throw "'$Branch' is $behind commit(s) behind origin/$Branch. Pull first." }
+    }
+    Write-Ok "On $currentBranch, clean and up to date"
 
     # --------------------------------------------------------------- version
     Write-Step 'Determining version'
@@ -274,17 +319,32 @@ try {
     Write-Step "Released $tag"
     Write-Ok "Docker:  docker pull ${Image}:$new"
     Write-Ok "GitHub:  $repoUrl/releases/tag/$tag"
+    if ($merged) {
+        Write-Ok "'$featureBranch' was merged into '$Branch'; you are now on '$Branch'."
+    }
 }
 catch {
     Write-Host "`nRelease failed: $($_.Exception.Message)" -ForegroundColor Red
 
-    if ($releaseCommitted -and -not $published) {
-        Write-Host 'Removing the local release commit and tag...' -ForegroundColor Yellow
-        & git tag -d $tag *> $null
-        & git reset --hard HEAD~1 *> $null
-        Write-Host 'Local repository restored. Nothing was pushed to GitHub.' -ForegroundColor Yellow
-        Write-Host 'Note: image tags that were already pushed to Docker Hub stay there; the next run overwrites them.' -ForegroundColor Yellow
-    } elseif ($published) {
+    if (-not $published) {
+        if ($releaseCommitted) {
+            Write-Host 'Removing the local release commit and tag...' -ForegroundColor Yellow
+            & git tag -d $tag *> $null
+            & git reset --hard HEAD~1 *> $null
+            Write-Host 'Note: image tags that were already pushed to Docker Hub stay there; the next run overwrites them.' -ForegroundColor Yellow
+        }
+        if ($merged) {
+            Write-Host "Undoing the merge into '$Branch'..." -ForegroundColor Yellow
+            & git reset --hard $branchBefore *> $null
+        }
+        if ($checkedOutRelease -and $featureBranch) {
+            & git checkout $featureBranch *> $null
+            Write-Host "Switched back to '$featureBranch'." -ForegroundColor Yellow
+        }
+        if ($releaseCommitted -or $merged) {
+            Write-Host 'Local repository restored. Nothing was pushed to GitHub.' -ForegroundColor Yellow
+        }
+    } else {
         Write-Host "The commit and tag were pushed. Create the GitHub release manually: gh release create $tag --notes-file <notes>" -ForegroundColor Yellow
     }
 
