@@ -80,7 +80,8 @@ Scheduler (routes/console.php)
 - `.dockerignore` keeps secrets out of the public image (`.env`, `storage/app/*` incl. remote-control keys, logs, sessions). Keep it that way when adding files with secrets.
 
 ## Testing
-- Feature tests use `RefreshDatabase` (configured globally in `tests/Pest.php`).
+- Feature tests use `RefreshDatabase` (configured globally in `tests/Pest.php`), which empties the database. `Tests\TestCase::createApplication()` refuses to run unless the database is in-memory SQLite and config is not cached. Never run `php artisan optimize` / `config:cache` on a development machine; use `php artisan optimize:clear` if it happened.
+- `phpunit.xml` forces the test environment (`force="true"`), including feature switches, so a local `.env` cannot change test behaviour.
 - Run a single test file: `php artisan test --filter=YourTestName` from `app/`.
 - `tests/Feature/UserIsolationTest.php` checks that users cannot see or change each other's data. Add a case there for every new user-owned page.
 - On Windows, the two websocket/roundtrip tests fail unless PHP can find `openssl.cnf` (RSA key generation); they pass in Docker.

@@ -241,6 +241,8 @@ try {
         Write-Step 'Running tests'
         Push-Location (Join-Path $root 'app')
         try {
+            # A cached config makes Laravel ignore phpunit.xml (tests would use the real database).
+            Invoke-Native php @('artisan', 'config:clear') -Quiet | Out-Null
             Invoke-Native php @('artisan', 'test', '--compact')
         } finally {
             Pop-Location
