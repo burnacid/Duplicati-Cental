@@ -7,6 +7,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-09
+
 ### Added
 - Dashboard with status tiles (healthy, warning, failed, overdue), per-server 30-day overview, per-job history of the last 30 runs and a "Needs attention" list.
 - Overdue detection: each job's schedule is learned from its history; an hourly check notifies once per missed period.
@@ -50,4 +52,5 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 - Notification channel settings (SMTP passwords, webhook headers) are encrypted in the database.
 - The Docker build no longer includes local secrets, keys, logs or `.env` files.
 
-[Unreleased]: https://github.com/burnacid/Duplicati-Cental/commits/master
+[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/burnacid/Duplicati-Cental/releases/tag/v0.1.0
