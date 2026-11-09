@@ -1,1 +1,33 @@
-/app/.env
+# Everything here stays out of the (public) Docker image.
+
+# Repository / tooling
+.git
+.github
+.idea
+**/.DS_Store
+dupliciti
+release.ps1
+
+# Local configuration and secrets
+.env
+app/.env
+app/.env.*
+!app/.env.example
+
+# Dependencies and build output are rebuilt inside the image
+app/node_modules
+app/vendor
+app/public/build
+app/public/hot
+
+# Runtime data: keys, logs, sessions, caches, local databases
+app/storage/app/*
+app/storage/logs/*
+app/storage/framework/cache/data/*
+app/storage/framework/sessions/*
+app/storage/framework/views/*
+app/storage/framework/testing
+app/storage/.app_key
+!app/storage/**/.gitignore
+app/database/*.sqlite
+app/.phpunit.result.cache

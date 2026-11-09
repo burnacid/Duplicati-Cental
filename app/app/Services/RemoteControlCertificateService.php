@@ -92,15 +92,27 @@ class RemoteControlCertificateService
             );
         }
 
-        $resource = openssl_pkey_new([
+        $options = [
             'private_key_bits' => 2048,
             'private_key_type' => OPENSSL_KEYTYPE_RSA,
-        ]);
+        ];
 
-        if ($resource === false || ! openssl_pkey_export($resource, $privateKey)) {
-            throw new RemoteControlCertificateException(
-                'Failed to generate an RSA key pair: ' . $this->collectOpenSslErrors()
-            );
+        $resource = openssl_pkey_new($options);
+        $exported = $resource !== false && openssl_pkey_export($resource, $privateKey);
+
+        // PHP on Windows often has no openssl.cnf; retry with the minimal config shipped with the app.
+        if (! $exported) {
+            $firstErrors = $this->collectOpenSslErrors();
+            $options['config'] = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'openssl.cnf';
+
+            $resource = openssl_pkey_new($options);
+            $exported = $resource !== false && openssl_pkey_export($resource, $privateKey, null, $options);
+
+            if (! $exported) {
+                throw new RemoteControlCertificateException(
+                    'Failed to generate an RSA key pair: ' . $firstErrors . '; with bundled config: ' . $this->collectOpenSslErrors()
+                );
+            }
         }
 
         $details = openssl_pkey_get_details($resource);

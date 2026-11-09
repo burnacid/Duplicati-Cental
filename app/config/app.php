@@ -16,6 +16,13 @@ return [
     'name' => env('APP_NAME', 'Laravel'),
 
     /*
+    | Application version. Docker images get APP_VERSION from the release build;
+    | in development it is read from the VERSION file in the repository root.
+    */
+
+    'version' => env('APP_VERSION') ?: (is_file(base_path('../VERSION')) ? trim((string) file_get_contents(base_path('../VERSION'))) : 'dev'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------

@@ -66,6 +66,12 @@ Scheduler (routes/console.php)
 ## Authorization
 `BackupServerPolicy` and `NotificationChannelPolicy` enforce ownership and are registered in `AppServiceProvider::boot()`. Call `$this->authorize()` before mutating user-owned resources, and look them up through the user scopes above.
 
+## Versioning & Releases
+- `VERSION` (repo root) holds the version (SemVer). The app reads it via `config('app.version')`: `APP_VERSION` env in Docker, otherwise the `VERSION` file. It is shown in the sidebar.
+- Record every user-visible change under `## [Unreleased]` in `CHANGELOG.md` (Keep a Changelog: Added / Changed / Fixed / Security).
+- Release with `./release.ps1` (PowerShell 7) from a clean, pushed `master`: first release `./release.ps1`, later `./release.ps1 -Bump patch|minor|major`. Use `-DryRun` to build without publishing. It runs the tests, moves the Unreleased notes into the new version, commits `Release vX.Y.Z`, tags `vX.Y.Z`, pushes the image `burnacid/duplicati-central:{X.Y.Z, X.Y, latest}` to Docker Hub, pushes git and creates the GitHub release. Needs `docker login` and `gh auth login`.
+- `.dockerignore` keeps secrets out of the public image (`.env`, `storage/app/*` incl. remote-control keys, logs, sessions). Keep it that way when adding files with secrets.
+
 ## Testing
 - Feature tests use `RefreshDatabase` (configured globally in `tests/Pest.php`).
 - Run a single test file: `php artisan test --filter=YourTestName` from `app/`.

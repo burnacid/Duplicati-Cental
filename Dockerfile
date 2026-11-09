@@ -1,8 +1,7 @@
 FROM php:8.4
 RUN apt-get update -y && apt-get install -y openssl zip unzip git npm supervisor
-RUN docker-php-ext-install pcntl
+RUN docker-php-ext-install pcntl pdo_mysql
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-#RUN docker-php-ext-install pdo mbstring
 WORKDIR /app
 COPY /app /app
 COPY entrypoint.sh .
@@ -66,6 +65,17 @@ ENV MAIL_FROM_ADDRESS="hello@example.com"
 ENV MAIL_FROM_NAME="${APP_NAME}"
 ENV VITE_APP_NAME="${APP_NAME}"
 
+# Version is passed in by release.ps1 (--build-arg APP_VERSION=x.y.z). Declared late to keep layer caching.
+ARG APP_VERSION=dev
+ARG VCS_REF=unknown
+ARG BUILD_DATE=unknown
+ENV APP_VERSION=${APP_VERSION}
+LABEL org.opencontainers.image.title="Duplicati Central" \
+      org.opencontainers.image.description="Central dashboard, alerting and remote control for Duplicati backups" \
+      org.opencontainers.image.version="${APP_VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.source="https://github.com/burnacid/Duplicati-Cental"
 
 ENTRYPOINT ["./entrypoint.sh"]
 CMD ["supervisord", "-n", "-c", "/etc/supervisor/conf.d/app.conf"]
