@@ -10,11 +10,15 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "cboden/ratchet": "0.4.x-dev",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "livewire/flux": "^2.1.1",
-        "livewire/volt": "^1.7.0"
+        "livewire/volt": "^1.7.0",
+        "react/event-loop": "^1.5",
+        "react/socket": "^1.15",
+        "web-token/jwt-library": "^4.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -24,7 +28,9 @@
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
         "pestphp/pest": "^3.8",
-        "pestphp/pest-plugin-laravel": "^3.2"
+        "pestphp/pest-plugin-laravel": "^3.2",
+        "ratchet/pawl": "^0.4.3",
+        "react/async": "^4.3"
     },
     "autoload": {
         "psr-4": {

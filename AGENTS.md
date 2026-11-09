@@ -1,0 +1,74 @@
+# Duplicati Central – Agent Guide
+
+## What This Project Is
+A self-hosted Laravel 12 dashboard that aggregates backup results from one or more [Duplicati](https://www.duplicati.com/) instances. Duplicati posts JSON payloads to a per-server API endpoint; the app stores, displays, and notifies on those results.
+
+## Tech Stack
+- **PHP 8.2+ / Laravel 12**, **Livewire (Flux) + Volt**, **Tailwind CSS v4**, **Pest** (testing), **SQLite** (default in Docker)
+- All app code lives under `app/` (the Laravel root); the repo root contains `Dockerfile` and `entrypoint.sh`.
+
+## Developer Workflows
+```bash
+# From app/
+composer run dev          # starts Laravel server + queue worker + Vite concurrently
+composer run test         # php artisan config:clear && php artisan test (Pest)
+php artisan migrate       # run migrations manually
+```
+- **Vite** (`vite.config.js`) has a hardcoded dev server host (`192.168.1.200`). Change `server.host` and `server.hmr.host` to your local IP before running `npm run dev`.
+- **Docker**: `entrypoint.sh` runs `npm run build` + `php artisan migrate --force` automatically on start. The container exposes port **8181**.
+
+## Architecture & Data Flow
+
+```
+Duplicati instance
+  └─ POST /api/backup-servers/{serverId}/{apiKey}/backup-result
+        └─ BackupController::storeBackupResult (validates first, skips List* operations)
+              └─ creates BackupResult (scoped to BackupServer)
+                    └─ queues SendBackupResultNotification → NotificationService::notifyBackupResult
+Scheduler (routes/console.php)
+  ├─ backups:check-overdue (hourly) → NotificationService::notifyOverdue
+  └─ daily pruning (retention settings in config/backups.php)
+```
+
+- **Web routes** (`routes/web.php`): all UI pages are full Livewire components (`App\Livewire\*`), including `NotificationChannels\Index`.
+- **API routes** (`routes/api.php`): unauthenticated; backup results authenticate via the `{apiKey}` path segment. Remote-control machines are claimed only through the authenticated web flow (`RemoteControlClaimController`).
+- **Remote control switch**: `REMOTE_CONTROL_ENABLED` (`config('remote_control.enabled')`, default true). Remote-control routes use the `remote-control` middleware (404 when off); shared screens check the config before showing remote-control UI. Guard any new remote-control feature the same way.
+- **History import**: `RemoteLogImportService` pages through `GET /api/v1/backup/{id}/log` on a connected instance and stores `Result` entries as `BackupResult` (`source = 'remote-log'`, no notifications). Duplicates are matched on server + job (`DB-<id>`) + `BeginTime` (±2 s). Started from the machine page (`ImportRemoteControlLogs` job, status in cache) or `php artisan remote-control:import-logs {registration?} --days=30`. Both reports and imports go through `BackupResultFactory`.
+- Docker runs four supervisord programs: web, remote-control websocket, `queue:work` and `schedule:work`. `entrypoint.sh` generates and persists `APP_KEY` in `storage/` when it is not set.
+
+## Key Models & Conventions
+
+| Model | PK | Notes |
+|---|---|---|
+| `User` | UUID (`HasUuids`) | Has many `NotificationChannel`. `User::registrationOpen()` gates sign-up (`REGISTRATION_ENABLED`; the first account is always allowed). |
+| `BackupServer` | UUID | `api_key` (64-char random) auto-set in `boot()`, hidden from serialisation. `scopeOwnedBy()` |
+| `BackupResult` | Auto-int | CamelCase column names mirror Duplicati's JSON schema. `scopeForUser()`, `status` accessor |
+| `NotificationChannel` | Auto-int | `config` is `encrypted:array`; `notify_on` (all/warning/error), `notify_overdue`; `type` validated against `config/notification_channels.php` |
+
+- **Always scope queries to the current user**: `BackupServer::ownedBy($user)`, `BackupResult::forUser($user)`, `auth()->user()->notificationChannels()`.
+- `BackupResult.backup_name` / `backup_id` are extracted from `extra['backup-name']` / `extra['backup-id']` in `boot()`.
+- `EndTime` / `BeginTime` are stored as naive UTC strings via the `App\Casts\UtcDateTime` cast and returned in `config('app.timezone')`. Raw SQL on these columns compares UTC values.
+- **Status colours**: use `App\Enums\BackupStatus` (`fromResult()`, `worstOf()`, `color()`, `fluxColor()`, `isFailure()`); `Error` and `Fatal` are both failures. Blade: `<x-backup-status-badge :status="..." />` and `<x-status-bar :items="..." />`.
+- Dashboard data (per-job history, day statuses, overdue detection) comes from `App\Services\BackupHealthService`.
+
+## Adding a New Notification Channel Type
+1. `config/notification_channels.php` – add `'type_key' => 'Display Name'` to `available_types`.
+2. `app/Services/NotificationService.php` – add an arm in `sendToChannel()` and implement the `send*()` method (throw on failure; `deliver()` logs and continues with other channels).
+3. `app/Livewire/NotificationChannels/Index.php` – add validation rules in `rules()`, the allowed config keys in `cleanConfig()`, and the form fields in its view.
+
+## Livewire Component Patterns
+- Livewire components live in `app/app/Livewire/` and are namespaced `App\Livewire\`.
+- Components with pagination use `WithPagination` and call `$this->resetPage()` when filters change. Bookmarkable filters use `#[Url]`.
+- Size/duration formatting: `App\Livewire\Concerns\FormatsBackupValues` (handles .NET `d.hh:mm:ss` durations).
+- Use Flux components (`flux:button`, `flux:modal` opened via `Flux::modal()`, `flux:input copyable`, `flux:badge`, `flux:callout`). Pass user-supplied values to `wire:click` with `@js()`, never inside quoted strings.
+- Volt single-file components (settings and auth pages) are in `resources/views/livewire/` and registered via `Volt::route()`.
+
+## Authorization
+`BackupServerPolicy` and `NotificationChannelPolicy` enforce ownership and are registered in `AppServiceProvider::boot()`. Call `$this->authorize()` before mutating user-owned resources, and look them up through the user scopes above.
+
+## Testing
+- Feature tests use `RefreshDatabase` (configured globally in `tests/Pest.php`).
+- Run a single test file: `php artisan test --filter=YourTestName` from `app/`.
+- `tests/Feature/UserIsolationTest.php` checks that users cannot see or change each other's data. Add a case there for every new user-owned page.
+- On Windows, the two websocket/roundtrip tests fail unless PHP can find `openssl.cnf` (RSA key generation); they pass in Docker.
+

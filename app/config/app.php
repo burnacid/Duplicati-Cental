@@ -68,6 +68,13 @@ return [
     'timezone' => env('APP_TIMEZONE', 'UTC'),
 
     /*
+    | Self-registration. The first account can always be created; after that
+    | sign-up is closed unless REGISTRATION_ENABLED=true.
+    */
+
+    'registration_enabled' => (bool) env('REGISTRATION_ENABLED', false),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------

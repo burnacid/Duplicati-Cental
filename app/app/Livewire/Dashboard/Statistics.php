@@ -2,67 +2,31 @@
 
 namespace App\Livewire\Dashboard;
 
-use Livewire\Component;
+use App\Enums\BackupStatus;
+use App\Livewire\Concerns\FormatsBackupValues;
 use App\Models\BackupServer;
-use App\Models\BackupResult;
+use App\Services\BackupHealthService;
+use Livewire\Component;
 
 class Statistics extends Component
 {
-    public $backupServersCount;
-    public $backupsCount;
-    public $totalBackupVolume;
-    public $totalBackupVolumeUnit;
+    use FormatsBackupValues;
 
-    public function mount()
+    public function render(BackupHealthService $health)
     {
-        $backupServers = BackupServer::where('user_id',auth()->user()->id)->get();
-        $this->backupServersCount = $backupServers->count();
-        $this->backupsCount = 0;
+        $user = auth()->user();
+        $jobs = $health->jobs($user);
 
-        foreach ($backupServers as $backupServer) {
-            $backupResults = $backupServer->backupResults->where('MainOperation', 'Backup');
+        $totalVolume = $jobs->sum(fn ($job) => (float) data_get($job['last_result']?->BackendStatistics, 'KnownFileSize', 0));
 
-            if($backupResults->count() > 0) {
-                $this->backupsCount += $backupResults->unique('backup_id')->count();
-
-                $latestBackups = $backupResults
-                    ->groupBy('backup_id')
-                    ->map(function ($group) {
-                        return $group->sortByDesc('EndTime')->first();
-                    });
-
-                //$latestBackups = $backupResults->latest()->unique('backup_id');
-                //$this->totalBackupVolume += $backupServer->backupResults->sum('SizeOfAddedFiles');
-                foreach ($latestBackups as $latestBackup) {
-                    $this->totalBackupVolume += $latestBackup->BackendStatistics['KnownFileSize'];
-                }
-            }
-        }
-
-        $formattedSize = $this->formatFileSize($this->totalBackupVolume);
-        $this->totalBackupVolume = $formattedSize['size'];
-        $this->totalBackupVolumeUnit = $formattedSize['unit'];
-    }
-
-    private function formatFileSize($bytes)
-    {
-        $units = ['MB', 'GB', 'TB'];
-        $size = $bytes / 1048576; // Convert to MB
-        $unit = 0;
-
-        while ($size >= 1024 && $unit < count($units) - 1) {
-            $size /= 1024;
-            $unit++;
-        }
-
-        return [
-            'size' => round($size, 2),
-            'unit' => $units[$unit]
-        ];
-    }
-
-    public function render()
-    {
-        return view('livewire.dashboard.statistics');
+        return view('livewire.dashboard.statistics', [
+            'backupServersCount' => BackupServer::ownedBy($user)->count(),
+            'backupsCount' => $jobs->count(),
+            'totalBackupVolume' => $this->formatSize($totalVolume),
+            'healthyCount' => $jobs->filter(fn ($j) => $j['last_status'] === BackupStatus::Success)->count(),
+            'warningCount' => $jobs->filter(fn ($j) => $j['last_status'] === BackupStatus::Warning)->count(),
+            'failedCount' => $jobs->filter(fn ($j) => $j['last_status']->isFailure())->count(),
+            'overdueCount' => $jobs->where('is_overdue', true)->count(),
+        ]);
     }
 }

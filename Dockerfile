@@ -1,20 +1,23 @@
 FROM php:8.4
-RUN apt-get update -y && apt-get install -y openssl zip unzip git npm
+RUN apt-get update -y && apt-get install -y openssl zip unzip git npm supervisor
+RUN docker-php-ext-install pcntl
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 #RUN docker-php-ext-install pdo mbstring
 WORKDIR /app
 COPY /app /app
 COPY entrypoint.sh .
-RUN ls
-RUN ls /app
-RUN composer install
-RUN npm install
-RUN npm run build
+COPY supervisord.conf /etc/supervisor/conf.d/app.conf
+RUN chmod +x /app/entrypoint.sh
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN npm ci && npm run build
+
+# Keep the database, generated APP_KEY and remote-control keys across container rebuilds.
+VOLUME ["/app/storage"]
 
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 ENV APP_NAME=Laravel
-ENV APP_KEY="base64:94rFONlXiMHhnB9Ht94n5Wyo2f9eT5MhOxvW9qzhBUI="
+
 ENV APP_URL=http://localhost
 ENV APP_LOCALE=en
 ENV APP_FALLBACK_LOCALE=en
@@ -25,7 +28,7 @@ ENV BCRYPT_ROUNDS=12
 ENV LOG_CHANNEL=stack
 ENV LOG_STACK=single
 ENV LOG_DEPRECATIONS_CHANNEL=null
-ENV LOG_LEVEL=debug
+ENV LOG_LEVEL=info
 ENV DB_CONNECTION=sqlite
 ENV DB_HOST=127.0.0.1
 ENV DB_PORT=3306
@@ -65,5 +68,6 @@ ENV VITE_APP_NAME="${APP_NAME}"
 
 
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8181"]
+CMD ["supervisord", "-n", "-c", "/etc/supervisor/conf.d/app.conf"]
 EXPOSE 8181
+EXPOSE 8090

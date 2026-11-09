@@ -11,7 +11,8 @@ class Create extends Component
     public $description;
 
     protected $rules = [
-        'name' => 'required|min:3'
+        'name' => 'required|min:3|max:255',
+        'description' => 'nullable|string|max:2000',
     ];
 
     public function render()
@@ -28,6 +29,8 @@ class Create extends Component
             'description' => $this->description,
             'user_id' => auth()->id(),
         ]);
+
+        session()->flash('message', 'Backup server saved.');
 
         return redirect()->route('backup-servers.index');
     }

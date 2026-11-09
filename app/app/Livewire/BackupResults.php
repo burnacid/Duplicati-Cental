@@ -2,76 +2,94 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use Livewire\WithPagination;
+use App\Livewire\Concerns\FormatsBackupValues;
 use App\Models\BackupResult;
 use App\Models\BackupServer;
+use App\Models\RemoteControlRegistration;
+use Livewire\Attributes\Url;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class BackupResults extends Component
 {
+    use FormatsBackupValues;
     use WithPagination;
 
-    public $backupServers;
-    public $selectedServerId;
+    #[Url(as: 'server', except: '')]
+    public string $selectedServerId = '';
 
-    protected $paginationTheme = 'tailwind';
+    #[Url(as: 'backup', except: '')]
+    public string $selectedBackupId = '';
 
-    public function mount()
+    #[Url(except: '')]
+    public string $status = '';
+
+    #[Url(except: '')]
+    public string $operation = '';
+
+    #[Url(as: 'q', except: '')]
+    public string $search = '';
+
+    public function updated($property): void
     {
-        $this->backupServers = BackupServer::where('user_id', auth()->user()->id)->get();
-        $this->selectedServerId = '';
+        if (in_array($property, ['selectedServerId', 'selectedBackupId', 'status', 'operation', 'search'], true)) {
+            $this->resetPage();
+        }
+
+        if ($property === 'selectedServerId') {
+            $this->selectedBackupId = '';
+        }
+    }
+
+    public function clearFilters(): void
+    {
+        $this->reset(['selectedServerId', 'selectedBackupId', 'status', 'operation', 'search']);
+        $this->resetPage();
     }
 
     public function render()
     {
-        $query = BackupResult::with('backupServer')
+        $user = auth()->user();
+
+        $query = BackupResult::forUser($user)
+            ->with('backupServer')
+            ->when($this->selectedServerId !== '', fn ($q) => $q->where('backup_server_id', $this->selectedServerId))
+            ->when($this->selectedBackupId !== '', fn ($q) => $q->where('backup_id', $this->selectedBackupId))
+            ->when($this->status === 'Failed', fn ($q) => $q->whereIn('ParsedResult', ['Error', 'Fatal']))
+            ->when($this->status !== '' && $this->status !== 'Failed', fn ($q) => $q->where('ParsedResult', $this->status))
+            ->when($this->operation !== '', fn ($q) => $q->where('MainOperation', $this->operation))
+            ->when($this->search !== '', fn ($q) => $q->where('backup_name', 'like', '%' . $this->search . '%'))
             ->orderBy('EndTime', 'desc');
 
-        if ($this->selectedServerId) {
-            $query->where('backup_server_id', $this->selectedServerId);
-        }
+        $results = $query->paginate(15);
 
-        $latestBackupResults = $query->paginate(10);
+        $machineIds = $results->getCollection()->pluck('machine_id')->filter()->unique()->values();
+
+        $claimedRegistrationsByMachineId = ($machineIds->isEmpty() || ! config('remote_control.enabled'))
+            ? collect()
+            : RemoteControlRegistration::query()
+                ->where('claimed_by_user_id', $user->id)
+                ->where('status', RemoteControlRegistration::STATUS_CLAIMED)
+                ->whereIn('machine_id', $machineIds)
+                ->get()
+                ->keyBy('machine_id');
+
+        $backupJobs = BackupResult::forUser($user)
+            ->when($this->selectedServerId !== '', fn ($q) => $q->where('backup_server_id', $this->selectedServerId))
+            ->select('backup_id', 'backup_name')
+            ->distinct()
+            ->orderBy('backup_name')
+            ->get();
+
+        $operations = BackupResult::forUser($user)->distinct()->orderBy('MainOperation')->pluck('MainOperation');
 
         return view('livewire.backup-results', [
-            'latestBackupResults' => $latestBackupResults,
+            'latestBackupResults' => $results,
+            'claimedRegistrationsByMachineId' => $claimedRegistrationsByMachineId,
+            'backupServers' => BackupServer::ownedBy($user)->orderBy('name')->get(['id', 'name']),
+            'backupJobs' => $backupJobs,
+            'operations' => $operations,
+            'hasFilters' => $this->selectedServerId !== '' || $this->selectedBackupId !== '' || $this->status !== '' || $this->operation !== '' || $this->search !== '',
         ]);
-    }
-
-    public function updatedSelectedServerId()
-    {
-        $this->resetPage();
-    }
-
-    private function formatSize($bytes)
-    {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        $i = 0;
-        while ($bytes >= 1024 && $i < count($units) - 1) {
-            $bytes /= 1024;
-            $i++;
-        }
-        return round($bytes, 2) . ' ' . $units[$i];
-    }
-
-    private function formatDuration($duration)
-    {
-        $parts = explode(':', $duration);
-        $hours = intval($parts[0]);
-        $minutes = intval($parts[1]);
-        $seconds = intval($parts[2]);
-
-        $result = [];
-        if ($hours > 0) {
-            $result[] = $hours . ' hour' . ($hours > 1 ? 's' : '');
-        }
-        if ($minutes > 0) {
-            $result[] = $minutes . ' minute' . ($minutes > 1 ? 's' : '');
-        }
-        if ($seconds > 0 || (empty($result) && $seconds == 0)) {
-            $result[] = $seconds . ' second' . ($seconds != 1 ? 's' : '');
-        }
-
-        return implode(', ', $result);
     }
 }

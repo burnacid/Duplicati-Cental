@@ -62,8 +62,21 @@ class User extends Authenticatable
             ->implode('');
     }
 
+    /**
+     * The first account can always register; after that only when enabled.
+     */
+    public static function registrationOpen(): bool
+    {
+        return config('app.registration_enabled') || ! static::query()->exists();
+    }
+
     public function notificationChannels(): HasMany
     {
         return $this->hasMany(NotificationChannel::class);
+    }
+
+    public function remoteControlRegistrations(): HasMany
+    {
+        return $this->hasMany(RemoteControlRegistration::class, 'claimed_by_user_id');
     }
 }

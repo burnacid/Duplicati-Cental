@@ -1,57 +1,98 @@
+@php
+    $num = fn ($v) => $v === null ? '—' : number_format((float) $v);
+    $isSizeKey = fn ($key) => str_contains((string) $key, 'Size') || str_contains((string) $key, 'Quota') || str_contains((string) $key, 'Space');
+@endphp
+
 <div class="py-2">
     <div class="overflow-hidden shadow-sm sm:rounded-lg">
-        <div class="p-6 text-gray-900 dark:text-gray-100">
-            @php
-                $previousUrl = url()->previous();
-                $currentUrl = url()->current();
-            @endphp
+        <div class="p-6 text-zinc-900 dark:text-zinc-100">
+            <div class="mb-4 flex flex-wrap gap-2">
+                <flux:button size="sm" icon="arrow-left" :href="route('backup-results')" wire:navigate>All results</flux:button>
+                <flux:button size="sm" variant="ghost" icon="clock"
+                             :href="route('backup-results', ['server' => $backupResult->backup_server_id, 'backup' => $backupResult->backup_id])"
+                             wire:navigate>
+                    History of this backup
+                </flux:button>
+            </div>
 
-            @if($previousUrl !== $currentUrl)
-                <div class="mb-4">
-                    <a href="{{ $previousUrl }}" class="inline-flex items-center px-4 py-2 bg-gray-800 dark:bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-gray-800 uppercase tracking-widest hover:bg-gray-700 dark:hover:bg-white focus:bg-gray-700 dark:focus:bg-white active:bg-gray-900 dark:active:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        Back
-                    </a>
+            <div class="flex items-center gap-3 mb-4">
+                <flux:heading size="xl">{{ $backupResult->backup_name }}</flux:heading>
+                <x-backup-status-badge :status="$backupResult->status" />
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="space-y-1">
+                    <p><strong>Server:</strong> {{ $backupResult->backupServer->name }}</p>
+                    <p><strong>Machine:</strong> {{ data_get($backupResult->extra, 'machine-name', 'Unknown') }} <span class="text-xs text-zinc-500">({{ $backupResult->machine_id ?: 'unknown id' }})</span></p>
+                    @if(config('remote_control.enabled'))
+                        <p>
+                            <strong>Claimed Instance:</strong>
+                            @if($claimedRegistration)
+                                <a class="text-indigo-600 dark:text-indigo-400 hover:underline" href="{{ route('remote-control.show', $claimedRegistration->id) }}" wire:navigate>
+                                    {{ $claimedRegistration->machine_name ?: $claimedRegistration->machine_id }}
+                                </a>
+                            @else
+                                Not matched to a claimed server
+                            @endif
+                        </p>
+                    @endif
+                    <p><strong>Operation:</strong> {{ $backupResult->MainOperation }}</p>
+                    <p><strong>Start Time:</strong> {{ $backupResult->BeginTime?->format('Y-m-d H:i:s') }}</p>
+                    <p><strong>End Time:</strong> {{ $backupResult->EndTime?->format('Y-m-d H:i:s') }} <span class="text-xs text-zinc-500">({{ $backupResult->EndTime?->diffForHumans() }})</span></p>
+                    <p><strong>Duration:</strong> {{ $this->formatDuration($backupResult->Duration) }}</p>
+                    <p><strong>Version:</strong> {{ $backupResult->Version }}</p>
+                    <p><strong>Warnings / Errors:</strong> {{ $backupResult->WarningsActualLength }} / {{ $backupResult->ErrorsActualLength }}</p>
+                </div>
+                <div class="space-y-1">
+                    @if($backupResult->MainOperation === 'Restore')
+                        <p><strong>Restored Files:</strong> {{ $num($backupResult->RestoredFiles) }}</p>
+                        <p><strong>Size of Restored Files:</strong> {{ $this->formatSize($backupResult->SizeOfRestoredFiles) }}</p>
+                        <p><strong>Restored Folders:</strong> {{ $num($backupResult->RestoredFolders) }}</p>
+                        <p><strong>Patched Files:</strong> {{ $num($backupResult->PatchedFiles) }}</p>
+                    @else
+                        <p><strong>Examined Files:</strong> {{ $num($backupResult->ExaminedFiles) }}</p>
+                        <p><strong>Size of Examined Files:</strong> {{ $this->formatSize($backupResult->SizeOfExaminedFiles) }}</p>
+                        <p><strong>Added Files:</strong> {{ $num($backupResult->AddedFiles) }}</p>
+                        <p><strong>Size of Added Files:</strong> {{ $this->formatSize($backupResult->SizeOfAddedFiles) }}</p>
+                        <p><strong>Modified Files:</strong> {{ $num($backupResult->ModifiedFiles) }}</p>
+                        <p><strong>Size of Modified Files:</strong> {{ $this->formatSize($backupResult->SizeOfModifiedFiles) }}</p>
+                        <p><strong>Deleted Files:</strong> {{ $num($backupResult->DeletedFiles) }}</p>
+                        <p><strong>Files With Error:</strong> {{ $num($backupResult->FilesWithError) }}</p>
+                    @endif
+                </div>
+            </div>
+
+            @if(!empty($backupResult->BackendStatistics))
+                <flux:heading size="lg" class="mb-2">Backend Statistics</flux:heading>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 mb-6">
+                    @foreach($backupResult->BackendStatistics as $key => $value)
+                        @continue(is_array($value))
+                        <p>
+                            <strong>{{ $key }}:</strong>
+                            @if(is_numeric($value) && $isSizeKey($key))
+                                {{ $this->formatSize($value) }}
+                            @elseif(is_bool($value))
+                                {{ $value ? 'Yes' : 'No' }}
+                            @else
+                                {{ $value }}
+                            @endif
+                        </p>
+                    @endforeach
                 </div>
             @endif
 
-            <h2 class="text-2xl font-semibold mb-4">Backup Detail</h2>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                    <p><strong>Server:</strong> {{ $backupResult->backupServer->name }}</p>
-                    <p><strong>Backup Name:</strong> {{ $backupResult->extra['backup-name'] }}</p>
-                    <p><strong>Operation:</strong> {{ $backupResult->MainOperation }}</p>
-                    <p><strong>Result:</strong> {{ $backupResult->ParsedResult }}</p>
-                    <p><strong>Start Time:</strong> {{ $backupResult->BeginTime }}</p>
-                    <p><strong>End Time:</strong> {{ $backupResult->EndTime }}</p>
-                    <p><strong>Duration:</strong> {{ $this->formatDuration($backupResult->Duration) }}</p>
-                </div>
-                <div>
-                    <p><strong>Version:</strong> {{ $backupResult->Version }}</p>
-                    <p><strong>Examined Files:</strong> {{ number_format($backupResult->ExaminedFiles) }}</p>
-                    <p><strong>Size of Examined Files:</strong> {{ $this->formatSize($backupResult->SizeOfExaminedFiles) }}</p>
-                    <p><strong>Added Files:</strong> {{ number_format($backupResult->AddedFiles) }}</p>
-                    <p><strong>Size of Added Files:</strong> {{ $this->formatSize($backupResult->SizeOfAddedFiles) }}</p>
-                    <p><strong>Modified Files:</strong> {{ number_format($backupResult->ModifiedFiles) }}</p>
-                    <p><strong>Size of Modified Files:</strong> {{ $this->formatSize($backupResult->SizeOfModifiedFiles) }}</p>
-                </div>
-            </div>
-
-            <h3 class="text-xl font-semibold mb-2">Backend Statistics</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                @foreach($backupResult->BackendStatistics as $key => $value)
-                    <p><strong>{{ $key }}:</strong> {{ is_numeric($value) ? $this->formatSize($value) : $value }}</p>
-                @endforeach
-            </div>
-
             @if($backupResult->log_lines)
-                <h3 class="text-xl font-semibold mb-2">Log Lines</h3>
-                <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg overflow-auto max-h-96">
+                <flux:heading size="lg" class="mb-2">Log Lines</flux:heading>
+                <div class="bg-zinc-100 dark:bg-zinc-700 p-4 rounded-lg overflow-auto max-h-96 font-mono text-xs">
                     @foreach($backupResult->log_lines as $line)
-                        <p class="mb-1">{{ $line }}</p>
+                        <p class="mb-1 whitespace-pre-wrap">
+                            @if(is_array($line))
+                                @if(isset($line['Timestamp']))<span class="text-zinc-500">{{ $line['Timestamp'] }}</span> @endif
+                                {{ $line['Message'] ?? json_encode($line) }}
+                            @else
+                                {{ $line }}
+                            @endif
+                        </p>
                     @endforeach
                 </div>
             @endif
