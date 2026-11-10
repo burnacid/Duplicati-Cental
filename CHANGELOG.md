@@ -7,6 +7,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-10
+
 ### Added
 - Duplicati Central can be installed as an app (PWA) on desktop and mobile. It shows an offline page when the server cannot be reached; backup data is never cached on the device. Installing needs HTTPS.
 - "Install app" in the sidebar when the browser supports installing (with Add to Home Screen steps on iPhone and iPad). The browser tab and the installed app icon show how many jobs need attention.
@@ -84,7 +86,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 - Notification channel settings (SMTP passwords, webhook headers) are encrypted in the database.
 - The Docker build no longer includes local secrets, keys, logs or `.env` files.
 
-[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/burnacid/Duplicati-Cental/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/burnacid/Duplicati-Cental/releases/tag/v0.1.0
