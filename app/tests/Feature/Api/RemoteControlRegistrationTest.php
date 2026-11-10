@@ -53,7 +53,8 @@ test('after a web claim, status returns the claimed payload', function () {
     config()->set('app.url', 'https://central.example.test');
     config()->set('remote_control.bridge_url', 'wss://bridge.example.test:8090');
 
-    $this->postJson('/api/remote-control/register', validRemoteRegistrationPayload());
+    // The instance registers on the public address; its URLs are based on that address.
+    $this->postJson('https://central.example.test/api/remote-control/register', validRemoteRegistrationPayload());
     $registration = RemoteControlRegistration::query()->firstOrFail();
 
     $this->actingAs(\App\Models\User::factory()->create())

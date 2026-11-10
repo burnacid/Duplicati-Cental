@@ -51,7 +51,9 @@ test('authenticated user can claim a pending registration via web flow', functio
         ->and(count($registration->server_certificates))->toBeGreaterThan(0);
 
     $backupServer = BackupServer::query()->findOrFail($registration->backup_server_id);
-    expect($registration->settings['reportingurl'] ?? null)->toBe($backupServer->backup_server_url)
+    // No registration address stored: falls back to APP_URL (not the browser's address).
+    expect($registration->settings['reportingurl'] ?? null)
+        ->toBe("https://central.example.test/api/backup-servers/{$backupServer->id}/{$backupServer->api_key}/backup-result")
         ->and((int) ($registration->settings['settingsversion'] ?? 0))->toBeGreaterThan(0);
 });
 

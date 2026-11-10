@@ -13,12 +13,13 @@ class Index extends Component
 
     public string $search = '';
     public string $bridgeWebsocketUrl = '';
-    public string $registrationUrl = '';
+    /** @var array<string, string> label => URL */
+    public array $registrationUrls = [];
 
     public function mount(RemoteControlUrlService $urlService): void
     {
         $this->bridgeWebsocketUrl = $urlService->websocketUrl(request());
-        $this->registrationUrl = $urlService->appBaseUrl(request()) . '/api/remote-control/register';
+        $this->registrationUrls = $urlService->registrationUrls(request());
     }
 
     public function updatingSearch(): void

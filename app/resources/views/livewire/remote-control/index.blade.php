@@ -16,12 +16,18 @@
             </flux:callout>
         @endif
 
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <x-copy-field label="Registration URL" :value="$registrationUrl" />
-            <p class="mt-2 text-xs text-zinc-500">
-                In Duplicati: Settings &rarr; Remote control &rarr; enter this URL and register, or start the server with
-                <span class="font-mono break-all">--register-remote-control={{ $registrationUrl }}</span>.
+        <div class="space-y-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            @foreach ($registrationUrls as $label => $url)
+                <x-copy-field :label="$label" :value="$url" />
+            @endforeach
+            <p class="text-xs text-zinc-500">
+                In Duplicati: Settings &rarr; Remote control &rarr; enter a URL and register, or start the server with
+                <span class="font-mono break-all">--register-remote-control=&lt;URL&gt;</span>.
                 Then open the claim link Duplicati shows while you are logged in here.
+                @if (count($registrationUrls) > 1)
+                    <br>Each instance keeps using the address it registered with: use the public URL for machines outside your network
+                    and this address for machines on the same network.
+                @endif
             </p>
         </div>
 

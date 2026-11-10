@@ -42,7 +42,14 @@ class RemoteControlRegistrationController extends Controller
                 ->first();
         }
 
+        // The address this instance used to reach us (honours TRUSTED_PROXIES), so it
+        // gets websocket and reporting URLs on that same address when claimed.
+        $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
+
+        $existing?->update(['registration_base_url' => $baseUrl]);
+
         $registration = $existing ?? RemoteControlRegistration::query()->create([
+            'registration_base_url' => $baseUrl,
             'instance_id' => $request->input('instanceId'),
             'machine_id' => $request->input('machineId'),
             'machine_name' => $request->input('machineName'),

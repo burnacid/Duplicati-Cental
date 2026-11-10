@@ -41,6 +41,7 @@ class RemoteControlRegistration extends Model
         'certificate_url',
         'server_certificates',
         'local_encryption_key',
+        'registration_base_url',
         'settings',
     ];
 

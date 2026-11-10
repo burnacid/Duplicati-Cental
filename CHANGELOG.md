@@ -7,6 +7,18 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+### Added
+- First admin for Docker installs via `ADMIN_EMAIL` / `ADMIN_PASSWORD` (or `ADMIN_PASSWORD_FILE`), created at start-up when no users exist, so nobody else can claim a fresh installation.
+- `php artisan user:create` and `php artisan user:reset-password` (optionally `--disable-2fa`) for creating accounts and recovering locked-out accounts.
+- `docker-compose.yml` and `.env.docker.example` with all settings explained, plus optional automatic HTTPS and MySQL/MariaDB setups.
+
+### Changed
+- Each Duplicati instance gets the websocket, certificates and reporting URLs on the address it registered with, e.g. the public domain behind a reverse proxy or a LAN address. `REMOTE_CONTROL_BRIDGE_URL` still overrides the websocket for all instances.
+- The Remote Control page shows both the public registration URL and the address it is opened on, when they differ.
+
+### Fixed
+- A claimed instance got a reporting URL based on the address the claim page was opened on, which could be unreachable for that instance.
+
 ## [0.1.0] - 2026-11-09
 
 ### Added
@@ -20,13 +32,10 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 - Import of the last 30 days of results from a connected instance's local logs, skipping results that are already stored (`php artisan remote-control:import-logs`).
 - `REMOTE_CONTROL_ENABLED` switch to turn all remote-control features off.
 - `REGISTRATION_ENABLED` setting: after the first account, sign-up is closed by default.
-- First admin for Docker installs via `ADMIN_EMAIL` / `ADMIN_PASSWORD` (or `ADMIN_PASSWORD_FILE`), created at start-up when no users exist.
-- `php artisan user:create` and `php artisan user:reset-password` (optionally `--disable-2fa`) for creating accounts and recovering locked-out accounts.
 - Two-factor authentication with an authenticator app (TOTP), including QR setup, recovery codes and protection against code reuse (Settings → Security).
 - Passkeys: passwordless sign-in with fingerprint, face, device PIN or security key (requires HTTPS).
 - `REQUIRE_2FA` setting to make an authenticator app or passkey mandatory for all users.
 - Daily retention clean-up of old results and remote-control commands (`BACKUP_RETENTION_DAYS`).
-- `docker-compose.yml` and `.env.docker.example` with all settings explained, plus optional automatic HTTPS and MySQL/MariaDB setups.
 - Versioning: `VERSION` file, version shown in the sidebar, release script `release.ps1` publishing to Docker Hub with a git tag and GitHub release.
 
 ### Changed

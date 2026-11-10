@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\BackupServer;
+use App\Models\RemoteControlRegistration;
 use Illuminate\Http\Request;
 
 class RemoteControlUrlService
@@ -30,6 +32,61 @@ class RemoteControlUrlService
     public function certificatesUrl(?Request $request = null): string
     {
         return $this->appBaseUrl($request) . $this->normalizedPath(config('remote_control.certificates_path', '/api/remote-control/certificates'));
+    }
+
+    /**
+     * The base URL an instance should use to reach us: the address it registered
+     * through (so LAN instances stay on the LAN and remote ones use the public
+     * address), falling back to APP_URL.
+     */
+    public function baseUrlFor(RemoteControlRegistration $registration): string
+    {
+        $registered = $registration->registration_base_url;
+
+        return is_string($registered) && $registered !== ''
+            ? $this->normalizeBaseUrl($registered)
+            : $this->appBaseUrl();
+    }
+
+    /**
+     * Websocket URL for an instance. REMOTE_CONTROL_BRIDGE_URL, when set, overrides it for all instances.
+     */
+    public function websocketUrlFor(RemoteControlRegistration $registration): string
+    {
+        $configured = config('remote_control.bridge_url');
+        $base = is_string($configured) && trim($configured) !== ''
+            ? $this->normalizeBridgeUrl($configured)
+            : $this->convertHttpToWebsocket($this->baseUrlFor($registration));
+
+        return $base . $this->normalizedPath(config('remote_control.websocket_path', '/api/remote-control/ws'));
+    }
+
+    public function certificatesUrlFor(RemoteControlRegistration $registration): string
+    {
+        return $this->baseUrlFor($registration) . $this->normalizedPath(config('remote_control.certificates_path', '/api/remote-control/certificates'));
+    }
+
+    /** Reporting URL (send-http-url) for a backup server, on the instance's address. */
+    public function reportingUrlFor(RemoteControlRegistration $registration, BackupServer $server): string
+    {
+        return $this->baseUrlFor($registration) . '/api/backup-servers/' . $server->id . '/' . $server->api_key . '/backup-result';
+    }
+
+    /**
+     * Registration URLs to show to the user: the public one (APP_URL) and, when
+     * the page is opened on another address (e.g. a LAN IP), that one too.
+     *
+     * @return array<string, string> label => URL
+     */
+    public function registrationUrls(Request $request): array
+    {
+        $path = '/api/remote-control/register';
+        $public = $this->appBaseUrl() . $path;
+        $current = $this->normalizeBaseUrl($request->getSchemeAndHttpHost()) . $path;
+
+        return $current === $public
+            ? ['Registration URL' => $public]
+            : ['Registration URL (public, APP_URL)' => $public, 'Registration URL (this address)' => $current];
     }
 
     private function normalizeBridgeUrl(string $value): string

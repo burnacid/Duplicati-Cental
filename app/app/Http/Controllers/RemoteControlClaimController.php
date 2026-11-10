@@ -48,8 +48,8 @@ class RemoteControlClaimController extends Controller
                 $backupServer = $provisioningService->ensureBackupServer($registration, $request->user());
                 $settings = $settingsService->build(
                     $registration,
-                    $urlService->appBaseUrl($request),
-                    $backupServer->backup_server_url
+                    $urlService->baseUrlFor($registration),
+                    $urlService->reportingUrlFor($registration, $backupServer)
                 );
                 $registration->update(['settings' => $settings]);
 
@@ -61,9 +61,14 @@ class RemoteControlClaimController extends Controller
                 ->with('error', 'This instance has already been claimed by another account.');
         }
 
-        $baseUrl = $urlService->appBaseUrl($request);
+        // All addresses the instance gets are based on how *it* reached us when registering,
+        // not on how the user opened this claim page.
         $backupServer = $provisioningService->ensureBackupServer($registration, $request->user());
-        $settings = $settingsService->build($registration, $baseUrl, $backupServer->backup_server_url);
+        $settings = $settingsService->build(
+            $registration,
+            $urlService->baseUrlFor($registration),
+            $urlService->reportingUrlFor($registration, $backupServer)
+        );
 
         $registration->update([
             'status' => RemoteControlRegistration::STATUS_CLAIMED,
@@ -71,8 +76,8 @@ class RemoteControlClaimController extends Controller
             'claimed_by_user_id' => $request->user()->id,
             'backup_server_id' => $backupServer->id,
             'jwt' => $registration->jwt ?: bin2hex(random_bytes(48)),
-            'server_url' => $registration->server_url ?: $urlService->websocketUrl($request),
-            'certificate_url' => $registration->certificate_url ?: $urlService->certificatesUrl($request),
+            'server_url' => $registration->server_url ?: $urlService->websocketUrlFor($registration),
+            'certificate_url' => $registration->certificate_url ?: $urlService->certificatesUrlFor($registration),
             'server_certificates' => (is_array($registration->server_certificates) && count($registration->server_certificates) > 0)
                 ? $registration->server_certificates
                 : $certificateService->listCertificates(),
