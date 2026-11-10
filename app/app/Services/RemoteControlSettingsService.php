@@ -26,4 +26,3 @@ class RemoteControlSettingsService
         return $settings;
     }
 }
-

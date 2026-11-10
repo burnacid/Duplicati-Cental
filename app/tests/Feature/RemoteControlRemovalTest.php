@@ -1,6 +1,7 @@
 <?php
 
 use App\Livewire\RemoteControl\Index;
+use App\Models\BackupServer;
 use App\Models\RemoteControlRegistration;
 use App\Models\User;
 use Livewire\Livewire;
@@ -9,14 +10,14 @@ function claimedRegistrationFor(User $user, array $overrides = []): RemoteContro
 {
     return RemoteControlRegistration::query()->create(array_merge([
         'claimed_by_user_id' => $user->id,
-        'machine_id' => 'machine-' . bin2hex(random_bytes(4)),
+        'machine_id' => 'machine-'.bin2hex(random_bytes(4)),
         'machine_name' => 'Claimed Machine',
-        'registration_token' => 'reg-' . bin2hex(random_bytes(8)),
-        'claim_token' => 'claim-' . bin2hex(random_bytes(8)),
+        'registration_token' => 'reg-'.bin2hex(random_bytes(8)),
+        'claim_token' => 'claim-'.bin2hex(random_bytes(8)),
         'status' => RemoteControlRegistration::STATUS_CLAIMED,
         'expires_at' => now()->addHour(),
         'claimed_at' => now(),
-        'jwt' => 'jwt-' . bin2hex(random_bytes(8)),
+        'jwt' => 'jwt-'.bin2hex(random_bytes(8)),
     ], $overrides));
 }
 
@@ -59,10 +60,9 @@ test('user cannot remove another users claimed remote controlled server', functi
     ]);
 });
 
-
 test('remote control pages show the backup server name instead of the machine name', function () {
     $owner = User::factory()->create();
-    $server = \App\Models\BackupServer::query()->create([
+    $server = BackupServer::query()->create([
         'name' => 'Office NAS',
         'user_id' => $owner->id,
     ]);

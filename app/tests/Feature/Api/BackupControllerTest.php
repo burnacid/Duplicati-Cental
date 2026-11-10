@@ -1,8 +1,11 @@
 <?php
 
+use App\Jobs\SendBackupResultNotification;
 use App\Models\BackupResult;
 use App\Models\BackupServer;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 
 function validBackupPayload(array $overrides = []): array
 {
@@ -146,7 +149,7 @@ test('it returns 422 instead of crashing on an empty body', function () {
 });
 
 test('it accepts other Duplicati operations such as Compact and Repair', function (string $operation) {
-    \Illuminate\Support\Facades\Queue::fake();
+    Queue::fake();
     $server = makeServerFor();
 
     $payload = validBackupPayload([
@@ -161,22 +164,22 @@ test('it accepts other Duplicati operations such as Compact and Repair', functio
 })->with(['Compact', 'Repair', 'Delete', 'Vacuum']);
 
 test('it stores times as UTC and converts offsets', function () {
-    \Illuminate\Support\Facades\Queue::fake();
+    Queue::fake();
     $server = makeServerFor();
 
     $this->postJson("/api/backup-servers/{$server->id}/{$server->api_key}/backup-result", validBackupPayload([
         'Data' => ['EndTime' => '2026-04-04T12:05:00+02:00'],
     ]))->assertCreated();
 
-    expect(\Illuminate\Support\Facades\DB::table('backup_results')->value('EndTime'))->toBe('2026-04-04 10:05:00');
+    expect(DB::table('backup_results')->value('EndTime'))->toBe('2026-04-04 10:05:00');
 });
 
 test('it queues a notification and does not echo the stored model', function () {
-    \Illuminate\Support\Facades\Queue::fake();
+    Queue::fake();
     $server = makeServerFor();
 
     $response = $this->postJson("/api/backup-servers/{$server->id}/{$server->api_key}/backup-result", validBackupPayload());
 
     $response->assertCreated()->assertJsonMissingPath('data');
-    \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SendBackupResultNotification::class);
+    Queue::assertPushed(SendBackupResultNotification::class);
 });

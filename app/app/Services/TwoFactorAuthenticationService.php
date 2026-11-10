@@ -21,9 +21,7 @@ class TwoFactorAuthenticationService
     /** Accept codes from one 30-second step before/after now (clock drift). */
     private const WINDOW = 1;
 
-    public function __construct(private readonly Google2FA $google2fa = new Google2FA())
-    {
-    }
+    public function __construct(private readonly Google2FA $google2fa = new Google2FA) {}
 
     public function generateSecret(): string
     {
@@ -37,7 +35,7 @@ class TwoFactorAuthenticationService
 
     public function qrCodeSvg(User $user, string $secret): string
     {
-        $writer = new Writer(new ImageRenderer(new RendererStyle(192, 1), new SvgImageBackEnd()));
+        $writer = new Writer(new ImageRenderer(new RendererStyle(192, 1), new SvgImageBackEnd));
 
         // Inline in HTML: drop the XML declaration.
         return (string) preg_replace('/^<\?xml[^>]*\?>\s*/', '', $writer->writeString($this->otpauthUrl($user, $secret)));
@@ -71,7 +69,7 @@ class TwoFactorAuthenticationService
     public function generateRecoveryCodes(): array
     {
         return array_map(
-            fn () => Str::lower(Str::random(5) . '-' . Str::random(5)),
+            fn () => Str::lower(Str::random(5).'-'.Str::random(5)),
             range(1, self::RECOVERY_CODE_COUNT),
         );
     }

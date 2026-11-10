@@ -63,7 +63,7 @@ class BackupController extends Controller
         SendBackupResultNotification::dispatch($backupResult->id);
 
         return response()->json([
-            'message' => ucfirst($operation) . ' result received successfully',
+            'message' => ucfirst($operation).' result received successfully',
             'id' => $backupResult->id,
         ], 201);
     }

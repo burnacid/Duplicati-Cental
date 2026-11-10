@@ -13,9 +13,7 @@ class SendBackupResultNotification implements ShouldQueue
 
     public int $tries = 3;
 
-    public function __construct(public int $backupResultId)
-    {
-    }
+    public function __construct(public int $backupResultId) {}
 
     public function handle(NotificationService $notifications): void
     {

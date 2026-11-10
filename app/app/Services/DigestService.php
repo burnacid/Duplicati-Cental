@@ -16,9 +16,7 @@ class DigestService
 {
     use FormatsBackupValues;
 
-    public function __construct(private BackupHealthService $health)
-    {
-    }
+    public function __construct(private BackupHealthService $health) {}
 
     /**
      * @return array{subject: string, message: string, context: array}|null null when the user has no backup jobs
@@ -67,12 +65,16 @@ class DigestService
         if ($attention->isNotEmpty()) {
             $lines[] = '';
             $lines[] = "Last run not successful ({$attention->count()}):";
-            $attention->each(function ($job) use (&$lines, $line) { $lines[] = $line($job); });
+            $attention->each(function ($job) use (&$lines, $line) {
+                $lines[] = $line($job);
+            });
         }
         if ($overdue->isNotEmpty()) {
             $lines[] = '';
             $lines[] = "Overdue ({$overdue->count()}):";
-            $overdue->each(function ($job) use (&$lines, $line) { $lines[] = $line($job); });
+            $overdue->each(function ($job) use (&$lines, $line) {
+                $lines[] = $line($job);
+            });
         }
         if ($snoozed->isNotEmpty()) {
             $lines[] = '';
@@ -87,8 +89,8 @@ class DigestService
         $lines[] = route('home');
 
         $problems = array_filter([
-            $attention->count() ? $attention->count() . ' need attention' : null,
-            $overdue->count() ? $overdue->count() . ' overdue' : null,
+            $attention->count() ? $attention->count().' need attention' : null,
+            $overdue->count() ? $overdue->count().' overdue' : null,
         ]);
 
         return [

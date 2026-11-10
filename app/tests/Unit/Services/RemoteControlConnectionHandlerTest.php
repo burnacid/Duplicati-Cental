@@ -14,12 +14,12 @@ function claimedRegistrationForConnectionHandler(array $overrides = []): RemoteC
         'instance_id' => 'connection-handler-instance',
         'machine_id' => 'connection-handler-machine',
         'machine_name' => 'Connection Handler Machine',
-        'registration_token' => 'reg-' . bin2hex(random_bytes(8)),
-        'claim_token' => 'claim-' . bin2hex(random_bytes(8)),
+        'registration_token' => 'reg-'.bin2hex(random_bytes(8)),
+        'claim_token' => 'claim-'.bin2hex(random_bytes(8)),
         'status' => RemoteControlRegistration::STATUS_CLAIMED,
         'expires_at' => now()->addHour(),
         'claimed_at' => now(),
-        'jwt' => 'jwt-' . bin2hex(random_bytes(8)),
+        'jwt' => 'jwt-'.bin2hex(random_bytes(8)),
     ], $overrides));
 }
 

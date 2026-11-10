@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\RemoteControlRegistration;
+use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 
 function validRemoteRegistrationPayload(array $overrides = []): array
 {
@@ -15,7 +17,6 @@ function validRemoteRegistrationPayload(array $overrides = []): array
 
     return array_replace_recursive($payload, $overrides);
 }
-
 
 test('it creates a pending registration and returns claim and status links', function () {
     $response = $this->postJson('/api/remote-control/register', validRemoteRegistrationPayload());
@@ -57,8 +58,8 @@ test('after a web claim, status returns the claimed payload', function () {
     $this->postJson('https://central.example.test/api/remote-control/register', validRemoteRegistrationPayload());
     $registration = RemoteControlRegistration::query()->firstOrFail();
 
-    $this->actingAs(\App\Models\User::factory()->create())
-        ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
+    $this->actingAs(User::factory()->create())
+        ->withoutMiddleware(ValidateCsrfToken::class)
         ->post("/remote-control/claim/{$registration->claim_token}")
         ->assertRedirect(route('remote-control.index', absolute: false));
 

@@ -14,7 +14,7 @@ beforeEach(function () {
 });
 
 test('detail page renders structured log lines and backend statistics', function () {
-    $result = new BackupResult();
+    $result = new BackupResult;
     $result->backup_server_id = $this->server->id;
     $result->extra = ['backup-name' => 'Docs', 'backup-id' => '1', 'machine-id' => 'm', 'machine-name' => 'Host'];
     $result->MainOperation = 'Backup';
@@ -100,7 +100,7 @@ test('overdue command notifies once per missed period', function () {
     ]);
 
     foreach ([10, 9, 8, 7] as $daysAgo) {
-        $r = new BackupResult();
+        $r = new BackupResult;
         $r->backup_server_id = $this->server->id;
         $r->extra = ['backup-name' => 'Nightly', 'backup-id' => '5', 'machine-id' => 'm'];
         $r->MainOperation = 'Backup';
@@ -125,7 +125,7 @@ test('overdue command notifies once per missed period', function () {
 });
 
 test('action buttons render valid wire:click arguments', function () {
-    $result = new BackupResult();
+    $result = new BackupResult;
     $result->backup_server_id = $this->server->id;
     $result->extra = ['backup-name' => 'Quoted', 'backup-id' => "x');alert(1);('", 'machine-id' => 'm'];
     $result->MainOperation = 'Backup';

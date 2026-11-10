@@ -14,9 +14,9 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->uuid('user_id');
             $table->foreign('user_id')
-                  ->references('id')
-                  ->on('users')
-                  ->onDelete('cascade');
+                ->references('id')
+                ->on('users')
+                ->onDelete('cascade');
             $table->string('api_key', 64)->unique();
             $table->timestamps();
         });

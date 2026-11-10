@@ -15,18 +15,18 @@ function claimedRegistrationForCommandService(array $overrides = []): RemoteCont
         'instance_id' => 'command-service-instance',
         'machine_id' => 'command-service-machine',
         'machine_name' => 'Command Service Machine',
-        'registration_token' => 'reg-' . bin2hex(random_bytes(8)),
-        'claim_token' => 'claim-' . bin2hex(random_bytes(8)),
+        'registration_token' => 'reg-'.bin2hex(random_bytes(8)),
+        'claim_token' => 'claim-'.bin2hex(random_bytes(8)),
         'status' => RemoteControlRegistration::STATUS_CLAIMED,
         'expires_at' => now()->addHour(),
         'claimed_at' => now(),
-        'jwt' => 'jwt-' . bin2hex(random_bytes(8)),
+        'jwt' => 'jwt-'.bin2hex(random_bytes(8)),
     ], $overrides));
 }
 
 test('dispatch without a body leaves request_body and request_headers null', function () {
     $registration = claimedRegistrationForCommandService();
-    $service = new RemoteControlCommandService();
+    $service = new RemoteControlCommandService;
 
     $command = $service->dispatch($registration, 'GET', '/api/v1/backups');
 
@@ -40,7 +40,7 @@ test('dispatch without a body leaves request_body and request_headers null', fun
 
 test('dispatch with a json body encodes it and sets the content-type header', function () {
     $registration = claimedRegistrationForCommandService();
-    $service = new RemoteControlCommandService();
+    $service = new RemoteControlCommandService;
 
     $command = $service->dispatch($registration, 'POST', '/api/v1/backup/abc/run', ['skipQueue' => false]);
 
@@ -51,7 +51,7 @@ test('dispatch with a json body encodes it and sets the content-type header', fu
 test('dispatch persists requested_by_user_id when given, null otherwise', function () {
     $registration = claimedRegistrationForCommandService();
     $user = User::factory()->create();
-    $service = new RemoteControlCommandService();
+    $service = new RemoteControlCommandService;
 
     $withUser = $service->dispatch($registration, 'GET', '/api/v1/backups', requestedByUserId: $user->id);
     $withoutUser = $service->dispatch($registration, 'GET', '/api/v1/backups');

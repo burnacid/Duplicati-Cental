@@ -23,11 +23,19 @@ test('worst status wins', function () {
 });
 
 test('durations including days are formatted correctly', function () {
-    $formatter = new class {
+    $formatter = new class
+    {
         use FormatsBackupValues;
 
-        public function duration($d) { return $this->formatDuration($d); }
-        public function size($b) { return $this->formatSize($b); }
+        public function duration($d)
+        {
+            return $this->formatDuration($d);
+        }
+
+        public function size($b)
+        {
+            return $this->formatSize($b);
+        }
     };
 
     expect($formatter->duration('00:05:12.1234567'))->toBe('5 minutes, 12 seconds')
@@ -38,7 +46,7 @@ test('durations including days are formatted correctly', function () {
 });
 
 test('expected interval is the median gap', function () {
-    $service = new BackupHealthService();
+    $service = new BackupHealthService;
     $base = Carbon::parse('2026-01-01 00:00:00');
 
     $times = collect([0, 24, 48, 73, 96])->map(fn ($h) => $base->copy()->addHours($h));
@@ -48,7 +56,7 @@ test('expected interval is the median gap', function () {
 });
 
 test('a daily backup is overdue after about two missed days', function () {
-    $service = new BackupHealthService();
+    $service = new BackupHealthService;
     $day = 24 * 3600;
 
     expect($service->isOverdue(now()->subHours(30), $day))->toBeFalse()
@@ -58,7 +66,7 @@ test('a daily backup is overdue after about two missed days', function () {
 
 test('without a known schedule the fallback applies', function () {
     config(['backups.overdue_fallback_hours' => 168]);
-    $service = new BackupHealthService();
+    $service = new BackupHealthService;
 
     expect($service->isOverdue(now()->subDays(3), null))->toBeFalse()
         ->and($service->isOverdue(now()->subDays(8), null))->toBeTrue();

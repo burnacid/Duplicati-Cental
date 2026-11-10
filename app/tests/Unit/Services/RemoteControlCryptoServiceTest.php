@@ -3,6 +3,13 @@
 use App\Exceptions\RemoteControlCryptoException;
 use App\Services\RemoteControlCertificateService;
 use App\Services\RemoteControlCryptoService;
+use Jose\Component\Core\AlgorithmManager;
+use Jose\Component\Encryption\Algorithm\ContentEncryption\A256CBCHS512;
+use Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP256;
+use Jose\Component\Encryption\JWEBuilder;
+use Jose\Component\Encryption\JWEDecrypter;
+use Jose\Component\Encryption\Serializer\CompactSerializer;
+use Jose\Component\KeyManagement\JWKFactory;
 use Tests\TestCase;
 
 uses(TestCase::class);
@@ -58,11 +65,11 @@ function flipBase64UrlChar(string $value): string
     $current = $value[$pos];
     $replacement = $current === 'A' ? 'B' : 'A';
 
-    return substr($value, 0, $pos) . $replacement . substr($value, $pos + 1);
+    return substr($value, 0, $pos).$replacement.substr($value, $pos + 1);
 }
 
 test('round trips an envelope through encrypt and decrypt using a fresh server key pair', function () {
-    $crypto = new RemoteControlCryptoService(new RemoteControlCertificateService());
+    $crypto = new RemoteControlCryptoService(new RemoteControlCertificateService);
 
     $envelope = [
         'from' => 'client',
@@ -80,7 +87,7 @@ test('round trips an envelope through encrypt and decrypt using a fresh server k
 });
 
 test('encrypts for a recipient using a PKCS#1 RSA PUBLIC KEY PEM, matching what the .NET client produces', function () {
-    $crypto = new RemoteControlCryptoService(new RemoteControlCertificateService());
+    $crypto = new RemoteControlCryptoService(new RemoteControlCertificateService);
 
     $envelope = [
         'from' => 'server',
@@ -94,11 +101,11 @@ test('encrypts for a recipient using a PKCS#1 RSA PUBLIC KEY PEM, matching what 
     $jwe = $crypto->encryptEnvelopeFor($envelope, FIXTURE_CLIENT_PUBLIC_PKCS1_PEM);
 
     // Decrypt with the matching private key directly via the jwt-library, simulating the client side.
-    $privateJwk = \Jose\Component\KeyManagement\JWKFactory::createFromKey(FIXTURE_CLIENT_PRIVATE_PEM);
-    $jweObject = (new \Jose\Component\Encryption\Serializer\CompactSerializer())->unserialize($jwe);
-    $decrypter = new \Jose\Component\Encryption\JWEDecrypter(new \Jose\Component\Core\AlgorithmManager([
-        new \Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP256(),
-        new \Jose\Component\Encryption\Algorithm\ContentEncryption\A256CBCHS512(),
+    $privateJwk = JWKFactory::createFromKey(FIXTURE_CLIENT_PRIVATE_PEM);
+    $jweObject = (new CompactSerializer)->unserialize($jwe);
+    $decrypter = new JWEDecrypter(new AlgorithmManager([
+        new RSAOAEP256,
+        new A256CBCHS512,
     ]));
 
     expect($decrypter->decryptUsingKey($jweObject, $privateJwk, 0))->toBeTrue()
@@ -106,7 +113,7 @@ test('encrypts for a recipient using a PKCS#1 RSA PUBLIC KEY PEM, matching what 
 });
 
 test('decrypts an envelope encrypted by a client with our PKCS#1 public key fixture', function () {
-    $crypto = new RemoteControlCryptoService(new RemoteControlCertificateService());
+    $crypto = new RemoteControlCryptoService(new RemoteControlCertificateService);
 
     $envelope = [
         'from' => 'client',
@@ -117,10 +124,10 @@ test('decrypts an envelope encrypted by a client with our PKCS#1 public key fixt
         'errorMessage' => null,
     ];
 
-    $serverPublicJwk = \Jose\Component\KeyManagement\JWKFactory::createFromKey($crypto->ourPublicKeyPem());
-    $jwe = (new \Jose\Component\Encryption\JWEBuilder(new \Jose\Component\Core\AlgorithmManager([
-        new \Jose\Component\Encryption\Algorithm\KeyEncryption\RSAOAEP256(),
-        new \Jose\Component\Encryption\Algorithm\ContentEncryption\A256CBCHS512(),
+    $serverPublicJwk = JWKFactory::createFromKey($crypto->ourPublicKeyPem());
+    $jwe = (new JWEBuilder(new AlgorithmManager([
+        new RSAOAEP256,
+        new A256CBCHS512,
     ])))
         ->create()
         ->withPayload(json_encode($envelope))
@@ -128,13 +135,13 @@ test('decrypts an envelope encrypted by a client with our PKCS#1 public key fixt
         ->addRecipient($serverPublicJwk)
         ->build();
 
-    $compact = (new \Jose\Component\Encryption\Serializer\CompactSerializer())->serialize($jwe, 0);
+    $compact = (new CompactSerializer)->serialize($jwe, 0);
 
     expect($crypto->decryptEnvelope($compact))->toBe($envelope);
 });
 
 test('decryptEnvelope throws RemoteControlCryptoException for a tampered ciphertext', function () {
-    $crypto = new RemoteControlCryptoService(new RemoteControlCertificateService());
+    $crypto = new RemoteControlCryptoService(new RemoteControlCertificateService);
 
     $envelope = ['from' => 'client', 'to' => 'server', 'type' => 'ping', 'messageId' => 'msg-4', 'payload' => null, 'errorMessage' => null];
     $jwe = $crypto->encryptEnvelopeFor($envelope, $crypto->ourPublicKeyPem());
@@ -147,13 +154,13 @@ test('decryptEnvelope throws RemoteControlCryptoException for a tampered ciphert
 })->throws(RemoteControlCryptoException::class);
 
 test('decryptEnvelope throws RemoteControlCryptoException for malformed input', function () {
-    $crypto = new RemoteControlCryptoService(new RemoteControlCertificateService());
+    $crypto = new RemoteControlCryptoService(new RemoteControlCertificateService);
 
     $crypto->decryptEnvelope('not-a-valid-jwe');
 })->throws(RemoteControlCryptoException::class);
 
 test('encryptEnvelopeFor throws RemoteControlCryptoException for an invalid recipient PEM', function () {
-    $crypto = new RemoteControlCryptoService(new RemoteControlCertificateService());
+    $crypto = new RemoteControlCryptoService(new RemoteControlCertificateService);
 
     $crypto->encryptEnvelopeFor(['type' => 'ping'], 'not a pem');
 })->throws(RemoteControlCryptoException::class);

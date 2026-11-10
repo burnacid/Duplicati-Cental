@@ -1,8 +1,8 @@
 <?php
 
+use App\Actions\FindPasskeyToAuthenticate;
 use App\Models\User;
 use Spatie\LaravelPasskeys\Actions\ConfigureCeremonyStepManagerFactoryAction;
-use Spatie\LaravelPasskeys\Actions\FindPasskeyToAuthenticateAction;
 use Spatie\LaravelPasskeys\Actions\GeneratePasskeyAuthenticationOptionsAction;
 use Spatie\LaravelPasskeys\Actions\GeneratePasskeyRegisterOptionsAction;
 use Spatie\LaravelPasskeys\Actions\StorePasskeyAction;
@@ -25,7 +25,7 @@ return [
         'store_passkey' => StorePasskeyAction::class,
         'generate_passkey_authentication_options' => GeneratePasskeyAuthenticationOptionsAction::class,
         // Our subclass rejects malformed input instead of throwing (HTTP 500).
-        'find_passkey' => \App\Actions\FindPasskeyToAuthenticate::class,
+        'find_passkey' => FindPasskeyToAuthenticate::class,
         'configure_ceremony_step_manager_factory' => ConfigureCeremonyStepManagerFactoryAction::class,
     ],
 

@@ -8,7 +8,9 @@ use Livewire\Component;
 class Edit extends Component
 {
     public BackupServer $backupServer;
+
     public $name;
+
     public $description;
 
     protected $rules = [

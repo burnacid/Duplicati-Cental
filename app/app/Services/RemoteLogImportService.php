@@ -7,7 +7,6 @@ use App\Models\BackupServer;
 use App\Models\RemoteControlCommand;
 use App\Models\RemoteControlRegistration;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use RuntimeException;
 
 /**
@@ -20,7 +19,9 @@ use RuntimeException;
 class RemoteLogImportService
 {
     public const PAGE_SIZE = 25;
+
     private const MAX_PAGES_PER_JOB = 200;
+
     /** Seconds of tolerance when matching an imported run to an existing one. */
     private const MATCH_TOLERANCE = 2;
 
@@ -28,11 +29,10 @@ class RemoteLogImportService
         private readonly RemoteControlCommandService $commands,
         private readonly BackupResultFactory $factory,
         private readonly RemoteControlProvisioningService $provisioning,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param (callable(array): void)|null $onProgress receives the running totals
+     * @param  (callable(array): void)|null  $onProgress  receives the running totals
      * @return array{jobs: int, imported: int, skipped: int, failed_jobs: list<string>}
      */
     public function import(RemoteControlRegistration $registration, int $days = 30, ?callable $onProgress = null): array
@@ -76,12 +76,12 @@ class RemoteLogImportService
     }
 
     /**
-     * @param array{id: string, name: string} $job
+     * @param  array{id: string, name: string}  $job
      * @return array{0: int, 1: int} imported, skipped
      */
     private function importJob(RemoteControlRegistration $registration, array $job, Carbon $cutoff): array
     {
-        $reportId = 'DB-' . $job['id'];
+        $reportId = 'DB-'.$job['id'];
         $server = $this->targetServer($registration, $job['id']);
         $known = $this->knownStartTimes($server, $job['id'], $cutoff);
 
@@ -90,8 +90,8 @@ class RemoteLogImportService
         $offset = null;
 
         for ($page = 0; $page < self::MAX_PAGES_PER_JOB; $page++) {
-            $path = '/api/v1/backup/' . rawurlencode($job['id']) . '/log?pagesize=' . self::PAGE_SIZE
-                . ($offset !== null ? '&offset=' . $offset : '');
+            $path = '/api/v1/backup/'.rawurlencode($job['id']).'/log?pagesize='.self::PAGE_SIZE
+                .($offset !== null ? '&offset='.$offset : '');
 
             [$status, $rows] = $this->request($registration, 'GET', $path);
             if ($status !== 200 || ! is_array($rows)) {
@@ -108,6 +108,7 @@ class RemoteLogImportService
                 $timestamp = (int) ($row['Timestamp'] ?? 0);
                 if ($timestamp > 0 && $timestamp < $cutoff->timestamp) {
                     $reachedCutoff = true;
+
                     continue;
                 }
 
@@ -123,6 +124,7 @@ class RemoteLogImportService
                 $begin = Carbon::parse($data['BeginTime'], 'UTC')->timestamp;
                 if ($this->isKnown($known, $begin)) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -159,7 +161,7 @@ class RemoteLogImportService
     private function targetServer(RemoteControlRegistration $registration, string $jobId): BackupServer
     {
         $existing = BackupResult::forUser($registration->claimed_by_user_id)
-            ->whereIn('backup_id', ['DB-' . $jobId, $jobId])
+            ->whereIn('backup_id', ['DB-'.$jobId, $jobId])
             ->when($registration->machine_id, fn ($q) => $q->where('extra->machine-id', $registration->machine_id))
             ->latest('EndTime')
             ->first();
@@ -173,7 +175,7 @@ class RemoteLogImportService
     {
         return BackupResult::query()
             ->where('backup_server_id', $server->id)
-            ->whereIn('backup_id', ['DB-' . $jobId, $jobId])
+            ->whereIn('backup_id', ['DB-'.$jobId, $jobId])
             ->where('BeginTime', '>=', $cutoff->copy()->subDay()->utc()->format('Y-m-d H:i:s'))
             ->get(['BeginTime'])
             ->map(fn ($r) => $r->BeginTime?->timestamp)

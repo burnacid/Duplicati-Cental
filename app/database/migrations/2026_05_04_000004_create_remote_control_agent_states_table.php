@@ -40,4 +40,3 @@ return new class extends Migration
         Schema::dropIfExists('remote_control_agent_states');
     }
 };
-

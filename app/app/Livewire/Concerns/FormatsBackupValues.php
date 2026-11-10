@@ -15,7 +15,7 @@ trait FormatsBackupValues
             $i++;
         }
 
-        return round($bytes, 2) . ' ' . $units[$i];
+        return round($bytes, 2).' '.$units[$i];
     }
 
     /**
@@ -37,7 +37,7 @@ trait FormatsBackupValues
         $result = [];
         foreach ($parts as $unit => $value) {
             if ($value > 0) {
-                $result[] = $value . ' ' . $unit . ($value !== 1 ? 's' : '');
+                $result[] = $value.' '.$unit.($value !== 1 ? 's' : '');
             }
         }
 

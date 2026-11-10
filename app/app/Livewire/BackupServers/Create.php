@@ -8,6 +8,7 @@ use Livewire\Component;
 class Create extends Component
 {
     public $name;
+
     public $description;
 
     protected $rules = [

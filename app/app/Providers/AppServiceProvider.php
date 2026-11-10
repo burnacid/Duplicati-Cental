@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Http\Middleware\EnsureRemoteControlEnabled;
+use App\Http\Middleware\EnsureTwoFactorConfigured;
 use App\Models\BackupServer;
 use App\Models\NotificationChannel;
 use App\Policies\BackupServerPolicy;
@@ -9,6 +11,7 @@ use App\Policies\NotificationChannelPolicy;
 use App\Services\BackupHealthService;
 use App\Services\NotificationService;
 use App\Services\RemoteControlConnectionHandler;
+use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -43,9 +46,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Re-apply these on Livewire action requests too, not only on the first page load.
         Livewire::addPersistentMiddleware([
-            \Illuminate\Auth\Middleware\RequirePassword::class,
-            \App\Http\Middleware\EnsureTwoFactorConfigured::class,
-            \App\Http\Middleware\EnsureRemoteControlEnabled::class,
+            RequirePassword::class,
+            EnsureTwoFactorConfigured::class,
+            EnsureRemoteControlEnabled::class,
         ]);
     }
 }

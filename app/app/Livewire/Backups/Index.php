@@ -9,9 +9,9 @@ use App\Services\BackupHealthService;
 use App\Support\Snooze;
 use Carbon\CarbonInterval;
 use Flux\Flux;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -20,18 +20,28 @@ class Index extends Component
     use WithPagination;
 
     public $confirmingBackupDeletion = false;
+
     public $backupToDelete = null;
+
     public $searchTerm = '';
+
     public $selectedServer = '';
 
     // Job settings modal
     public ?string $settingsServerId = null;
+
     public ?string $settingsBackupId = null;
+
     public string $settingsBackupName = '';
+
     public bool $monitored = true;
+
     public string $expectedIntervalHours = '';
+
     public ?string $learnedInterval = null;
+
     public ?string $mutedLabel = null;
+
     public string $snoozeFor = '1d';
 
     public function updatedSearchTerm(): void
@@ -67,7 +77,7 @@ class Index extends Component
             ->orderBy('backup_results.backup_name');
 
         if ($this->searchTerm) {
-            $query->where('backup_results.backup_name', 'like', '%' . $this->searchTerm . '%');
+            $query->where('backup_results.backup_name', 'like', '%'.$this->searchTerm.'%');
         }
 
         if ($this->selectedServer) {
@@ -83,7 +93,7 @@ class Index extends Component
             'jobSettings' => BackupJobSetting::query()
                 ->whereIn('backup_server_id', $servers->pluck('id'))
                 ->get()
-                ->keyBy(fn (BackupJobSetting $s) => $s->backup_server_id . '|' . $s->backup_id),
+                ->keyBy(fn (BackupJobSetting $s) => $s->backup_server_id.'|'.$s->backup_id),
         ]);
     }
 
@@ -179,7 +189,7 @@ class Index extends Component
                     ->where('backup_id', $this->backupToDelete['backup_id'])
                     ->delete();
 
-                session()->flash('message', "Deleted {$deleted} stored " . Str::plural('result', $deleted) . '.');
+                session()->flash('message', "Deleted {$deleted} stored ".Str::plural('result', $deleted).'.');
                 $this->dispatch('backup-deleted');
             }
         }

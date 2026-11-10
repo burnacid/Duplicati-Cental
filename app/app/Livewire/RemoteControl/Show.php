@@ -2,10 +2,10 @@
 
 namespace App\Livewire\RemoteControl;
 
+use App\Jobs\ImportRemoteControlLogs;
 use App\Models\BackupResult;
 use App\Models\RemoteControlCommand;
 use App\Models\RemoteControlRegistration;
-use App\Jobs\ImportRemoteControlLogs;
 use App\Services\RemoteControlCommandService;
 use App\Services\RemoteLogImportService;
 use Illuminate\Support\Collection;
@@ -23,6 +23,7 @@ class Show extends Component
     public RemoteControlRegistration $registration;
 
     public ?string $backupsCommandId = null;
+
     public ?string $progressCommandId = null;
 
     /**
@@ -36,7 +37,9 @@ class Show extends Component
     public array $tasks = [];
 
     public ?array $backups = null;
+
     public ?array $progress = null;
+
     public ?string $progressError = null;
 
     public function mount(string $id, RemoteControlCommandService $commandService): void
@@ -140,7 +143,7 @@ class Show extends Component
         if ($task['command_id'] === null) {
             // Ask Duplicati how the task is doing.
             if ($task['task_id'] !== null) {
-                $task['command_id'] = $commandService->dispatch($this->registration, 'GET', '/api/v1/task/' . $task['task_id'])->id;
+                $task['command_id'] = $commandService->dispatch($this->registration, 'GET', '/api/v1/task/'.$task['task_id'])->id;
                 $task['command_kind'] = 'status';
                 $this->tasks[$backupId] = $task;
             }
@@ -235,7 +238,6 @@ class Show extends Component
         $this->backupsCommandId = null;
     }
 
-
     private function collectProgress(RemoteControlCommandService $commandService): void
     {
         if ($this->progressCommandId === null) {
@@ -279,7 +281,7 @@ class Show extends Component
         }
 
         $ids = collect($this->backups)->pluck('id');
-        $candidates = $ids->concat($ids->map(fn ($id) => 'DB-' . $id))->all();
+        $candidates = $ids->concat($ids->map(fn ($id) => 'DB-'.$id))->all();
 
         $results = BackupResult::forUser(Auth::user())
             ->whereIn('backup_id', $candidates)

@@ -46,7 +46,7 @@ function backupPayloadForMachine(string $machineId): array
         'Extra' => [
             'OperationName' => 'Backup',
             'machine-id' => $machineId,
-            'machine-name' => 'Machine ' . $machineId,
+            'machine-name' => 'Machine '.$machineId,
             'backup-name' => 'Daily backup',
             'backup-id' => 'backup-1',
         ],
@@ -69,8 +69,8 @@ test('backup results page shows claimed instance when machine id matches current
         'claimed_by_user_id' => $user->id,
         'machine_id' => 'machine-match',
         'machine_name' => 'Claimed Host',
-        'registration_token' => 'reg-' . bin2hex(random_bytes(6)),
-        'claim_token' => 'claim-' . bin2hex(random_bytes(6)),
+        'registration_token' => 'reg-'.bin2hex(random_bytes(6)),
+        'claim_token' => 'claim-'.bin2hex(random_bytes(6)),
         'status' => RemoteControlRegistration::STATUS_CLAIMED,
         'expires_at' => now()->addHour(),
         'claimed_at' => now(),
@@ -102,8 +102,8 @@ test('backup results page does not show claimed instance for other user claim', 
         'claimed_by_user_id' => $otherUser->id,
         'machine_id' => 'machine-other',
         'machine_name' => 'Other User Host',
-        'registration_token' => 'reg-' . bin2hex(random_bytes(6)),
-        'claim_token' => 'claim-' . bin2hex(random_bytes(6)),
+        'registration_token' => 'reg-'.bin2hex(random_bytes(6)),
+        'claim_token' => 'claim-'.bin2hex(random_bytes(6)),
         'status' => RemoteControlRegistration::STATUS_CLAIMED,
         'expires_at' => now()->addHour(),
         'claimed_at' => now(),
@@ -117,4 +117,3 @@ test('backup results page does not show claimed instance for other user claim', 
         ->assertOk()
         ->assertDontSee('Claimed instance: Other User Host');
 });
-

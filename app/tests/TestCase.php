@@ -23,7 +23,7 @@ abstract class TestCase extends BaseTestCase
         if ($app->configurationIsCached() || $app->environment() !== 'testing' || $default !== 'sqlite' || $database !== ':memory:') {
             throw new RuntimeException(sprintf(
                 'Refusing to run tests against database "%s" (%s, environment "%s"%s). '
-                . 'Tests only run on the in-memory SQLite database. Run "php artisan optimize:clear" and try again.',
+                .'Tests only run on the in-memory SQLite database. Run "php artisan optimize:clear" and try again.',
                 $database,
                 $default,
                 $app->environment(),

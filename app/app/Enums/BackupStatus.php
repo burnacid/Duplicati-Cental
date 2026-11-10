@@ -22,7 +22,7 @@ enum BackupStatus: string
     /**
      * Worst status of a set of ParsedResult values (None when empty).
      *
-     * @param iterable<string|null|self> $results
+     * @param  iterable<string|null|self>  $results
      */
     public static function worstOf(iterable $results): self
     {

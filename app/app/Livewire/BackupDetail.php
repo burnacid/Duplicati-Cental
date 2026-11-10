@@ -12,6 +12,7 @@ class BackupDetail extends Component
     use FormatsBackupValues;
 
     public BackupResult $backupResult;
+
     public ?RemoteControlRegistration $claimedRegistration = null;
 
     public function mount($id)

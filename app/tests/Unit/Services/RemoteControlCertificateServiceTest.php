@@ -7,7 +7,7 @@ use Tests\TestCase;
 uses(TestCase::class);
 
 test('certificate service returns deterministic key pair after initial creation', function () {
-    $service = new RemoteControlCertificateService();
+    $service = new RemoteControlCertificateService;
 
     $first = $service->listCertificates();
     $second = $service->listCertificates();
@@ -17,13 +17,11 @@ test('certificate service returns deterministic key pair after initial creation'
 });
 
 test('throws RemoteControlCertificateException instead of fabricating fake PEM when OpenSSL is unavailable', function () {
-    $tempPath = sys_get_temp_dir() . '/rc-cert-test-' . bin2hex(random_bytes(4));
+    $tempPath = sys_get_temp_dir().'/rc-cert-test-'.bin2hex(random_bytes(4));
 
     $service = new class($tempPath) extends RemoteControlCertificateService
     {
-        public function __construct(private readonly string $tempPath)
-        {
-        }
+        public function __construct(private readonly string $tempPath) {}
 
         protected function isOpenSslAvailable(): bool
         {
@@ -38,4 +36,3 @@ test('throws RemoteControlCertificateException instead of fabricating fake PEM w
 
     $service->getOrCreateKeyPair();
 })->throws(RemoteControlCertificateException::class);
-

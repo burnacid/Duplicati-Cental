@@ -14,12 +14,12 @@ function claimedRegistrationForAgentSync(array $overrides = []): RemoteControlRe
         'instance_id' => 'agent-sync-instance',
         'machine_id' => 'agent-sync-machine',
         'machine_name' => 'Agent Sync Machine',
-        'registration_token' => 'reg-' . bin2hex(random_bytes(8)),
-        'claim_token' => 'claim-' . bin2hex(random_bytes(8)),
+        'registration_token' => 'reg-'.bin2hex(random_bytes(8)),
+        'claim_token' => 'claim-'.bin2hex(random_bytes(8)),
         'status' => RemoteControlRegistration::STATUS_CLAIMED,
         'expires_at' => now()->addHour(),
         'claimed_at' => now(),
-        'jwt' => 'jwt-' . bin2hex(random_bytes(8)),
+        'jwt' => 'jwt-'.bin2hex(random_bytes(8)),
         'settings' => [
             'settingsversion' => '2',
             'reportingurl' => 'https://central.example.test/api/backup-servers/test/key/backup-result',
@@ -29,7 +29,7 @@ function claimedRegistrationForAgentSync(array $overrides = []): RemoteControlRe
 
 test('touchAndBuildControl returns updatesettings control when settings are not yet applied', function () {
     $registration = claimedRegistrationForAgentSync();
-    $service = new RemoteControlAgentSyncService();
+    $service = new RemoteControlAgentSyncService;
 
     $result = $service->touchAndBuildControl($registration, ['client-version' => '2.1.0.5']);
 
@@ -47,7 +47,7 @@ test('acknowledgeSettings suppresses repeated updatesettings payload', function 
             'reportingurl' => 'https://central.example.test/api/backup-servers/test/key/backup-result',
         ],
     ]);
-    $service = new RemoteControlAgentSyncService();
+    $service = new RemoteControlAgentSyncService;
 
     $state = $service->acknowledgeSettings($registration, 3);
     expect($state->last_applied_settings_version)->toBe(3);
@@ -57,14 +57,14 @@ test('acknowledgeSettings suppresses repeated updatesettings payload', function 
 });
 
 test('findClaimedRegistrationByJwt returns null for an unknown token', function () {
-    $service = new RemoteControlAgentSyncService();
+    $service = new RemoteControlAgentSyncService;
 
     expect($service->findClaimedRegistrationByJwt('invalid-token'))->toBeNull();
 });
 
 test('touchLastSeen updates last_seen_at without touching settings acknowledgement', function () {
     $registration = claimedRegistrationForAgentSync();
-    $service = new RemoteControlAgentSyncService();
+    $service = new RemoteControlAgentSyncService;
 
     $service->acknowledgeSettings($registration, 2);
     $before = RemoteControlAgentState::query()->where('remote_control_registration_id', $registration->id)->first();
@@ -78,7 +78,7 @@ test('touchLastSeen updates last_seen_at without touching settings acknowledgeme
 
 test('markDisconnected sets disconnected_at on an existing state', function () {
     $registration = claimedRegistrationForAgentSync();
-    $service = new RemoteControlAgentSyncService();
+    $service = new RemoteControlAgentSyncService;
 
     $service->touchAndBuildControl($registration);
     $service->markDisconnected($registration);
@@ -90,7 +90,7 @@ test('markDisconnected sets disconnected_at on an existing state', function () {
 
 test('markDisconnected is a no-op when no agent state exists yet', function () {
     $registration = claimedRegistrationForAgentSync();
-    $service = new RemoteControlAgentSyncService();
+    $service = new RemoteControlAgentSyncService;
 
     $service->markDisconnected($registration);
 

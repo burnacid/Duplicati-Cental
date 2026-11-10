@@ -1,8 +1,9 @@
 <?php
 
 use App\Livewire\RemoteControl\Show;
+use App\Models\BackupResult;
+use App\Models\BackupServer;
 use App\Models\RemoteControlCommand;
-use App\Models\RemoteControlRegistration;
 use App\Models\User;
 use Livewire\Livewire;
 
@@ -141,10 +142,10 @@ test('a command that times out marks the task as not started', function () {
 test('the last stored result is shown per job, matching DB-prefixed ids', function () {
     $owner = User::factory()->create();
     $registration = claimedRegistrationFor($owner);
-    $server = \App\Models\BackupServer::query()->create(['name' => 'RC', 'user_id' => $owner->id]);
+    $server = BackupServer::query()->create(['name' => 'RC', 'user_id' => $owner->id]);
     $registration->update(['backup_server_id' => $server->id]);
 
-    $result = new \App\Models\BackupResult();
+    $result = new BackupResult;
     $result->backup_server_id = $server->id;
     $result->extra = ['backup-name' => 'Test', 'backup-id' => 'DB-1', 'machine-id' => $registration->machine_id];
     $result->MainOperation = 'Backup';

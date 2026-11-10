@@ -13,4 +13,3 @@ class RemoteControlCertificateController extends Controller
         return response()->json($certificateService->listCertificates());
     }
 }
-

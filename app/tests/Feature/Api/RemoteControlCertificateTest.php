@@ -19,4 +19,3 @@ test('remote control certificates endpoint returns at least one certificate', fu
         ->and(count($certificates))->toBeGreaterThan(0)
         ->and($certificates[0]['publicKey'])->toContain('BEGIN PUBLIC KEY');
 });
-

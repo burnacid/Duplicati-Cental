@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Settings;
 
+use Illuminate\View\View;
 use Spatie\LaravelPasskeys\Livewire\PasskeysComponent;
 
 /**
@@ -12,7 +13,7 @@ class Passkeys extends PasskeysComponent
 {
     public ?string $browserError = null;
 
-    public function render(): \Illuminate\View\View
+    public function render(): View
     {
         return view('livewire.settings.passkeys', [
             'passkeys' => $this->currentUser()->passkeys()->latest()->get(),

@@ -30,6 +30,7 @@ app/storage/framework/sessions/*
 app/storage/framework/views/*
 app/storage/framework/testing
 app/storage/.app_key
+app/storage/backups
 !app/storage/**/.gitignore
 app/database/*.sqlite
 app/.phpunit.result.cache

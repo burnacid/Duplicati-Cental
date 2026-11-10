@@ -17,6 +17,7 @@ use stdClass;
 class RemoteControlConnectionHandler implements MessageComponentInterface
 {
     private const PHASE_WELCOME_SENT = 'welcome_sent';
+
     private const PHASE_AUTHENTICATED = 'authenticated';
 
     /**
@@ -38,7 +39,7 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
         private readonly RemoteControlCryptoService $cryptoService,
         private readonly RemoteControlAgentSyncService $syncService,
     ) {
-        $this->connections = new SplObjectStorage();
+        $this->connections = new SplObjectStorage;
     }
 
     public function onOpen(ConnectionInterface $conn): void
@@ -53,7 +54,7 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
             return;
         }
 
-        $state = new stdClass();
+        $state = new stdClass;
         $state->phase = self::PHASE_WELCOME_SENT;
         $state->clientId = 'client';
         $state->registration = null;
@@ -73,7 +74,7 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
     }
 
     /**
-     * @param mixed $msg
+     * @param  mixed  $msg
      */
     public function onMessage(ConnectionInterface $from, $msg): void
     {
@@ -331,7 +332,7 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
     }
 
     /**
-     * @param array<string, mixed>|null $payload
+     * @param  array<string, mixed>|null  $payload
      */
     private function sendPlaintext(ConnectionInterface $conn, stdClass $state, string $type, ?array $payload): void
     {
@@ -339,7 +340,7 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
     }
 
     /**
-     * @param array<string, mixed>|null $payload
+     * @param  array<string, mixed>|null  $payload
      */
     private function sendEncrypted(ConnectionInterface $conn, stdClass $state, string $type, ?array $payload, ?string $messageId = null): string
     {
@@ -350,7 +351,7 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
     }
 
     /**
-     * @param array<string, mixed>|null $payload
+     * @param  array<string, mixed>|null  $payload
      * @return array<string, mixed>
      */
     private function buildEnvelope(stdClass $state, string $type, ?array $payload, ?string $messageId = null): array
@@ -366,7 +367,7 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
     }
 
     /**
-     * @param array<string, mixed> $envelope
+     * @param  array<string, mixed>  $envelope
      * @return array<string, mixed>
      */
     private function decodePayload(array $envelope): array

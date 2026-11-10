@@ -36,9 +36,7 @@ class RemoteControlCryptoService
 
     private ?JWK $ownPrivateKey = null;
 
-    public function __construct(private readonly RemoteControlCertificateService $certificateService)
-    {
-    }
+    public function __construct(private readonly RemoteControlCertificateService $certificateService) {}
 
     public function ourPublicKeyPem(): string
     {
@@ -46,14 +44,14 @@ class RemoteControlCryptoService
     }
 
     /**
-     * @param array<string, mixed> $envelope
+     * @param  array<string, mixed>  $envelope
      */
     public function encryptEnvelopeFor(array $envelope, string $recipientPublicKeyPem): string
     {
         try {
             $recipientKey = JWKFactory::createFromKey($recipientPublicKeyPem);
         } catch (Throwable $e) {
-            throw new RemoteControlCryptoException('Invalid recipient public key: ' . $e->getMessage(), 0, $e);
+            throw new RemoteControlCryptoException('Invalid recipient public key: '.$e->getMessage(), 0, $e);
         }
 
         try {
@@ -64,9 +62,9 @@ class RemoteControlCryptoService
                 ->addRecipient($recipientKey)
                 ->build();
 
-            return (new CompactSerializer())->serialize($jwe, 0);
+            return (new CompactSerializer)->serialize($jwe, 0);
         } catch (Throwable $e) {
-            throw new RemoteControlCryptoException('Failed to encrypt envelope: ' . $e->getMessage(), 0, $e);
+            throw new RemoteControlCryptoException('Failed to encrypt envelope: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -76,16 +74,16 @@ class RemoteControlCryptoService
     public function decryptEnvelope(string $compactJwe): array
     {
         try {
-            $jwe = (new CompactSerializer())->unserialize($compactJwe);
+            $jwe = (new CompactSerializer)->unserialize($compactJwe);
         } catch (Throwable $e) {
-            throw new RemoteControlCryptoException('Malformed JWE: ' . $e->getMessage(), 0, $e);
+            throw new RemoteControlCryptoException('Malformed JWE: '.$e->getMessage(), 0, $e);
         }
 
         try {
             $decrypted = (new JWEDecrypter($this->algorithmManager()))
                 ->decryptUsingKey($jwe, $this->ownPrivateKey(), 0);
         } catch (Throwable $e) {
-            throw new RemoteControlCryptoException('Failed to decrypt envelope: ' . $e->getMessage(), 0, $e);
+            throw new RemoteControlCryptoException('Failed to decrypt envelope: '.$e->getMessage(), 0, $e);
         }
 
         if (! $decrypted || $jwe->getPayload() === null) {
@@ -95,7 +93,7 @@ class RemoteControlCryptoService
         try {
             $payload = json_decode($jwe->getPayload(), true, flags: JSON_THROW_ON_ERROR);
         } catch (Throwable $e) {
-            throw new RemoteControlCryptoException('Decrypted payload is not valid JSON: ' . $e->getMessage(), 0, $e);
+            throw new RemoteControlCryptoException('Decrypted payload is not valid JSON: '.$e->getMessage(), 0, $e);
         }
 
         if (! is_array($payload)) {
@@ -109,7 +107,7 @@ class RemoteControlCryptoService
      * Wraps a command request for a protocol v2 client: {"v":2,"jwe":"..."} encrypted to the client key.
      * The reply key is our own public key, since this server is both relay and portal.
      *
-     * @param array<string, mixed> $request method, path, body, headers
+     * @param  array<string, mixed>  $request  method, path, body, headers
      * @return array<string, mixed>
      */
     public function encryptCommandRequest(string $messageId, array $request, string $clientPublicKeyPem): array
@@ -138,9 +136,9 @@ class RemoteControlCryptoService
                 ->addRecipient($recipientKey)
                 ->build();
 
-            $compact = (new CompactSerializer())->serialize($jwe, 0);
+            $compact = (new CompactSerializer)->serialize($jwe, 0);
         } catch (Throwable $e) {
-            throw new RemoteControlCryptoException('Failed to encrypt command payload: ' . $e->getMessage(), 0, $e);
+            throw new RemoteControlCryptoException('Failed to encrypt command payload: '.$e->getMessage(), 0, $e);
         }
 
         $wrapper = ['v' => self::COMMAND_PAYLOAD_VERSION, 'jwe' => $compact];
@@ -152,7 +150,7 @@ class RemoteControlCryptoService
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     public function isEncryptedCommandPayload(array $payload): bool
     {
@@ -164,7 +162,7 @@ class RemoteControlCryptoService
     /**
      * Decrypts a protocol v2 command response and returns the inner response (statusCode, body, headers).
      *
-     * @param array<string, mixed> $wrapper
+     * @param  array<string, mixed>  $wrapper
      * @return array<string, mixed>
      */
     public function decryptCommandResponse(array $wrapper, string $expectedMessageId): array
@@ -175,7 +173,7 @@ class RemoteControlCryptoService
         }
 
         try {
-            $jwe = (new CompactSerializer())->unserialize((string) $wrapper['jwe']);
+            $jwe = (new CompactSerializer)->unserialize((string) $wrapper['jwe']);
             $header = $jwe->getSharedProtectedHeader();
             if (($header['alg'] ?? null) !== 'RSA-OAEP-256' || ($header['enc'] ?? null) !== 'A256GCM') {
                 throw new RemoteControlCryptoException('Unexpected command payload algorithms.');
@@ -186,7 +184,7 @@ class RemoteControlCryptoService
         } catch (RemoteControlCryptoException $e) {
             throw $e;
         } catch (Throwable $e) {
-            throw new RemoteControlCryptoException('Failed to decrypt command payload: ' . $e->getMessage(), 0, $e);
+            throw new RemoteControlCryptoException('Failed to decrypt command payload: '.$e->getMessage(), 0, $e);
         }
 
         if (! $decrypted || $jwe->getPayload() === null) {
@@ -216,8 +214,8 @@ class RemoteControlCryptoService
     private function commandAlgorithmManager(): AlgorithmManager
     {
         return new AlgorithmManager([
-            new RSAOAEP256(),
-            new A256GCM(),
+            new RSAOAEP256,
+            new A256GCM,
         ]);
     }
 
@@ -229,7 +227,7 @@ class RemoteControlCryptoService
             try {
                 $this->ownPrivateKey = JWKFactory::createFromKey($pem);
             } catch (Throwable $e) {
-                throw new RemoteControlCryptoException('Invalid server private key: ' . $e->getMessage(), 0, $e);
+                throw new RemoteControlCryptoException('Invalid server private key: '.$e->getMessage(), 0, $e);
             }
         }
 
@@ -239,8 +237,8 @@ class RemoteControlCryptoService
     private function algorithmManager(): AlgorithmManager
     {
         return new AlgorithmManager([
-            new RSAOAEP256(),
-            new A256CBCHS512(),
+            new RSAOAEP256,
+            new A256CBCHS512,
         ]);
     }
 }

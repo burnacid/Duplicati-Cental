@@ -18,7 +18,7 @@ class RemoteControlProvisioningService
 
         $backupServer = BackupServer::query()->create([
             'name' => $name,
-            'description' => 'Auto-created from remote control claim' . ($registration->machine_id ? (': ' . $registration->machine_id) : ''),
+            'description' => 'Auto-created from remote control claim'.($registration->machine_id ? (': '.$registration->machine_id) : ''),
             'user_id' => $user->id,
         ]);
 
@@ -34,11 +34,10 @@ class RemoteControlProvisioningService
         $index = 2;
 
         while (BackupServer::query()->where('user_id', $user->id)->where('name', $name)->exists()) {
-            $name = $baseName . ' (' . $index . ')';
+            $name = $baseName.' ('.$index.')';
             $index++;
         }
 
         return $name;
     }
 }
-

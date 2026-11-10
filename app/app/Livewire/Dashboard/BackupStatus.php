@@ -32,7 +32,7 @@ class BackupStatus extends Component
         $commands->dispatch(
             $registration,
             'POST',
-            '/api/v1/backup/' . rawurlencode($backupId) . '/run?skipQueue=false',
+            '/api/v1/backup/'.rawurlencode($backupId).'/run?skipQueue=false',
             requestedByUserId: auth()->id(),
         );
 

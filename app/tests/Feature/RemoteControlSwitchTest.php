@@ -12,8 +12,8 @@ function connectedRegistrationFor(User $user, BackupServer $server): RemoteContr
     $registration = RemoteControlRegistration::query()->create([
         'machine_id' => 'switch-machine',
         'machine_name' => 'Switch Host',
-        'registration_token' => 'reg-' . bin2hex(random_bytes(8)),
-        'claim_token' => 'claim-' . bin2hex(random_bytes(8)),
+        'registration_token' => 'reg-'.bin2hex(random_bytes(8)),
+        'claim_token' => 'claim-'.bin2hex(random_bytes(8)),
         'status' => RemoteControlRegistration::STATUS_CLAIMED,
         'claimed_by_user_id' => $user->id,
         'backup_server_id' => $server->id,
@@ -36,10 +36,10 @@ test('when disabled, remote control pages and api return 404', function () {
     $this->actingAs($this->user);
 
     $this->get('/remote-control')->assertNotFound();
-    $this->get('/remote-control/' . $this->registration->id)->assertNotFound();
-    $this->get('/remote-control/claim/' . $this->registration->claim_token)->assertNotFound();
+    $this->get('/remote-control/'.$this->registration->id)->assertNotFound();
+    $this->get('/remote-control/claim/'.$this->registration->claim_token)->assertNotFound();
     $this->postJson('/api/remote-control/register', ['machineId' => 'x'])->assertNotFound();
-    $this->postJson('/api/remote-control/register/' . $this->registration->registration_token . '/status')->assertNotFound();
+    $this->postJson('/api/remote-control/register/'.$this->registration->registration_token.'/status')->assertNotFound();
     $this->getJson('/api/remote-control/certificates')->assertNotFound();
 
     expect(RemoteControlRegistration::count())->toBe(1);

@@ -50,6 +50,13 @@ services:
       # How long backup results are kept (days, 0 = forever).
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-365}
 
+      # Daily backup of Central itself (database, keys) to /app/storage/backups.
+      # By hand: docker exec duplicati-central php artisan app:backup
+      CENTRAL_BACKUP_ENABLED: ${CENTRAL_BACKUP_ENABLED:-false}
+      CENTRAL_BACKUP_TIME: ${CENTRAL_BACKUP_TIME:-03:00}
+      CENTRAL_BACKUP_KEEP: ${CENTRAL_BACKUP_KEEP:-7}
+      CENTRAL_BACKUP_PASSWORD: ${CENTRAL_BACKUP_PASSWORD:-}
+
       # Email for notification channels without their own SMTP server.
       MAIL_MAILER: ${MAIL_MAILER:-log}
       MAIL_HOST: ${MAIL_HOST:-}

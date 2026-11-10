@@ -5,12 +5,13 @@ use App\Models\BackupServer;
 use App\Models\User;
 use App\Services\BackupHealthService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
-function benchResult(BackupServer $server, string $job, string $status, \DateTimeInterface $end, array $logLines = []): BackupResult
+function benchResult(BackupServer $server, string $job, string $status, DateTimeInterface $end, array $logLines = []): BackupResult
 {
-    $r = new BackupResult();
+    $r = new BackupResult;
     $r->backup_server_id = $server->id;
-    $r->extra = ['backup-name' => $job, 'backup-id' => 'DB-' . $job, 'machine-id' => 'm'];
+    $r->extra = ['backup-name' => $job, 'backup-id' => 'DB-'.$job, 'machine-id' => 'm'];
     $r->MainOperation = 'Backup';
     $r->ParsedResult = $status;
     $r->Interrupted = false;
@@ -36,7 +37,7 @@ beforeEach(function () {
 test('log lines are stored outside the results table and still readable', function () {
     $result = benchResult($this->server, 'A', 'Success', now(), ['line one', 'line two']);
 
-    expect(\Illuminate\Support\Facades\Schema::hasColumn('backup_results', 'log_lines'))->toBeFalse()
+    expect(Schema::hasColumn('backup_results', 'log_lines'))->toBeFalse()
         ->and(DB::table('backup_result_logs')->where('backup_result_id', $result->id)->exists())->toBeTrue()
         ->and(BackupResult::find($result->id)->log_lines)->toBe(['line one', 'line two']);
 

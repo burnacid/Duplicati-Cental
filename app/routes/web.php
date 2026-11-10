@@ -10,6 +10,7 @@ use App\Livewire\BackupServers\Index as BackupServersIndex;
 use App\Livewire\NotificationChannels\Index as NotificationChannelsIndex;
 use App\Livewire\RemoteControl\Index as RemoteControlIndex;
 use App\Livewire\RemoteControl\Show as RemoteControlShow;
+use App\Livewire\Settings\Health as SettingsHealth;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -40,6 +41,7 @@ Route::middleware(['auth', 'two-factor.required'])->group(function () {
         Route::get('/remote-control/{id}', RemoteControlShow::class)->name('remote-control.show');
     });
     Route::get('/notification-channels', NotificationChannelsIndex::class)->name('notification-channels.index');
+    Route::get('/settings/health', SettingsHealth::class)->name('settings.health');
 });
 
 require __DIR__.'/auth.php';

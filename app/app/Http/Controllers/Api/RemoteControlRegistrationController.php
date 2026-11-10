@@ -13,7 +13,9 @@ use Illuminate\Support\Str;
 class RemoteControlRegistrationController extends Controller
 {
     private const RETRY_SECONDS = 5;
+
     private const MAX_RETRIES = 100;
+
     private const MAX_LIFETIME_SECONDS = 3600;
 
     public function register(Request $request): JsonResponse
@@ -111,4 +113,3 @@ class RemoteControlRegistrationController extends Controller
         ]);
     }
 }
-

@@ -4,16 +4,18 @@ use App\Livewire\BackupResults;
 use App\Livewire\Backups\Index as BackupsIndex;
 use App\Livewire\BackupServers\Index as BackupServersIndex;
 use App\Livewire\NotificationChannels\Index as NotificationChannelsIndex;
+use App\Models\BackupJobSetting;
 use App\Models\BackupResult;
 use App\Models\BackupServer;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Livewire\Livewire;
 
 function storeResultFor(BackupServer $server, string $backupName = 'Docs', string $status = 'Success'): BackupResult
 {
-    $result = new BackupResult();
+    $result = new BackupResult;
     $result->backup_server_id = $server->id;
-    $result->extra = ['backup-name' => $backupName, 'backup-id' => 'id-' . $backupName, 'machine-id' => 'm'];
+    $result->extra = ['backup-name' => $backupName, 'backup-id' => 'id-'.$backupName, 'machine-id' => 'm'];
     $result->MainOperation = 'Backup';
     $result->ParsedResult = $status;
     $result->Interrupted = false;
@@ -97,7 +99,7 @@ test('notification channels of another user cannot be edited', function () {
     $this->actingAs($this->alice);
 
     expect(fn () => Livewire::test(NotificationChannelsIndex::class)->call('edit', $channel->id))
-        ->toThrow(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        ->toThrow(ModelNotFoundException::class);
 });
 
 test('registration closes once an account exists', function () {
@@ -130,22 +132,22 @@ test('another user\'s job settings cannot be opened or changed', function () {
     $this->actingAs($this->alice);
 
     expect(fn () => Livewire::test(BackupsIndex::class)->call('openSettings', $this->bobServer->id, 'id-BobSecret'))
-        ->toThrow(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        ->toThrow(ModelNotFoundException::class);
 
     expect(fn () => Livewire::test(BackupsIndex::class)
         ->set('settingsServerId', $this->bobServer->id)
         ->set('settingsBackupId', 'id-BobSecret')
         ->call('snoozeJob'))
-        ->toThrow(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        ->toThrow(ModelNotFoundException::class);
 
-    expect(\App\Models\BackupJobSetting::count())->toBe(0);
+    expect(BackupJobSetting::count())->toBe(0);
 });
 
 test('another user\'s server cannot be snoozed', function () {
     $this->actingAs($this->alice);
 
     expect(fn () => Livewire::test(BackupServersIndex::class)->call('snoozeServer', $this->bobServer->id, '1d'))
-        ->toThrow(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        ->toThrow(ModelNotFoundException::class);
 
     expect($this->bobServer->fresh()->muted_until)->toBeNull();
 });

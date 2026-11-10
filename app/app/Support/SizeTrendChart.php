@@ -11,11 +11,17 @@ use Illuminate\Support\Carbon;
 class SizeTrendChart
 {
     public const WIDTH = 720;
+
     public const HEIGHT = 220;
+
     private const LEFT = 64;
+
     private const RIGHT = 12;
+
     private const TOP = 10;
+
     private const BOTTOM = 26;
+
     private const UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
 
     /** @var list<array{t: int, source: int, backup: int}> */
@@ -24,7 +30,7 @@ class SizeTrendChart
     private float $maxY;
 
     /**
-     * @param list<array{t: int, source: int, backup: int}> $points oldest first
+     * @param  list<array{t: int, source: int, backup: int}>  $points  oldest first
      */
     public function __construct(array $points)
     {
@@ -45,7 +51,7 @@ class SizeTrendChart
     {
         $parts = [];
         foreach ($this->points as $i => $p) {
-            $parts[] = ($i === 0 ? 'M' : 'L') . $this->x($p['t']) . ' ' . $this->y($p[$series]);
+            $parts[] = ($i === 0 ? 'M' : 'L').$this->x($p['t']).' '.$this->y($p[$series]);
         }
 
         return implode(' ', $parts);
@@ -59,7 +65,7 @@ class SizeTrendChart
             'ys' => $this->y($p['source']),
             'yb' => $this->y($p['backup']),
             'title' => Carbon::createFromTimestamp($p['t'])->setTimezone(config('app.timezone'))->format('Y-m-d H:i')
-                . ' · source ' . self::formatBytes($p['source']) . ' · backup ' . self::formatBytes($p['backup']),
+                .' · source '.self::formatBytes($p['source']).' · backup '.self::formatBytes($p['backup']),
         ], $this->points);
     }
 
@@ -91,7 +97,9 @@ class SizeTrendChart
         $ticks = [];
         for ($i = 0; $i <= 4; $i++) {
             $t = (int) round($first + ($last - $first) * $i / 4);
-            $ticks[] = ['x' => $this->x($t), 'label' => $this->dateLabel($t), 'anchor' => match ($i) { 0 => 'start', 4 => 'end', default => 'middle' }];
+            $ticks[] = ['x' => $this->x($t), 'label' => $this->dateLabel($t), 'anchor' => match ($i) {
+                0 => 'start', 4 => 'end', default => 'middle'
+            }];
         }
 
         return $ticks;
@@ -120,7 +128,7 @@ class SizeTrendChart
             $i++;
         }
 
-        return round($bytes, $bytes >= 100 ? 0 : 1) . ' ' . self::UNITS[$i];
+        return round($bytes, $bytes >= 100 ? 0 : 1).' '.self::UNITS[$i];
     }
 
     private function x(int $t): float

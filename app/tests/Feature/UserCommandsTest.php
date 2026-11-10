@@ -2,7 +2,9 @@
 
 use App\Models\User;
 use App\Services\TwoFactorAuthenticationService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use PragmaRX\Google2FA\Google2FA;
 
 afterEach(function () {
     foreach (['ADMIN_NAME', 'ADMIN_EMAIL', 'ADMIN_PASSWORD', 'ADMIN_PASSWORD_FILE'] as $name) {
@@ -87,8 +89,8 @@ test('--from-env does nothing when not configured and fails when half configured
 
 test('user:reset-password sets a new password and can remove 2FA', function () {
     $user = User::factory()->create(['email' => 'locked@example.com']);
-    app(TwoFactorAuthenticationService::class)->enable($user, (new PragmaRX\Google2FA\Google2FA())->generateSecretKey(32));
-    \Illuminate\Support\Facades\DB::table('passkeys')->insert([
+    app(TwoFactorAuthenticationService::class)->enable($user, (new Google2FA)->generateSecretKey(32));
+    DB::table('passkeys')->insert([
         'authenticatable_id' => $user->id, 'name' => 'Lost phone', 'credential_id' => 'x', 'data' => '{}',
         'created_at' => now(), 'updated_at' => now(),
     ]);

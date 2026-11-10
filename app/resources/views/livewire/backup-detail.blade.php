@@ -85,14 +85,8 @@
                 <flux:heading size="lg" class="mb-2">Log Lines</flux:heading>
                 <div class="bg-zinc-100 dark:bg-zinc-700 p-4 rounded-lg overflow-auto max-h-96 font-mono text-xs">
                     @foreach($backupResult->log_lines as $line)
-                        <p class="mb-1 whitespace-pre-wrap">
-                            @if(is_array($line))
-                                @if(isset($line['Timestamp']))<span class="text-zinc-500">{{ $line['Timestamp'] }}</span> @endif
-                                {{ $line['Message'] ?? json_encode($line) }}
-                            @else
-                                {{ $line }}
-                            @endif
-                        </p>
+                        {{-- One line: whitespace-pre-wrap would also keep the template's indentation. --}}
+                        <p class="mb-1 whitespace-pre-wrap">@if(is_array($line))@if(isset($line['Timestamp']))<span class="text-zinc-500">{{ $line['Timestamp'] }}</span> @endif{{ $line['Message'] ?? json_encode($line) }}@else{{ $line }}@endif</p>
                     @endforeach
                 </div>
             @endif

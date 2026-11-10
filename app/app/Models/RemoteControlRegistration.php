@@ -15,6 +15,7 @@ class RemoteControlRegistration extends Model
     use HasUuids;
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_CLAIMED = 'claimed';
 
     protected $keyType = 'string';
@@ -81,4 +82,3 @@ class RemoteControlRegistration extends Model
         return $this->hasMany(RemoteControlCommand::class, 'remote_control_registration_id');
     }
 }
-

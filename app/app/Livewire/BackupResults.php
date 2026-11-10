@@ -68,7 +68,7 @@ class BackupResults extends Component
             ->when($this->status === 'Failed', fn ($q) => $q->whereIn('ParsedResult', ['Error', 'Fatal']))
             ->when($this->status !== '' && $this->status !== 'Failed', fn ($q) => $q->where('ParsedResult', $this->status))
             ->when($this->operation !== '', fn ($q) => $q->where('MainOperation', $this->operation))
-            ->when($this->search !== '', fn ($q) => $q->where('backup_name', 'like', '%' . $this->search . '%'))
+            ->when($this->search !== '', fn ($q) => $q->where('backup_name', 'like', '%'.$this->search.'%'))
             ->orderBy('EndTime', 'desc');
 
         $results = $query->paginate(15);

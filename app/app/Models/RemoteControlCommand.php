@@ -11,8 +11,11 @@ class RemoteControlCommand extends Model
     use HasUuids;
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_SENT = 'sent';
+
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_TIMEOUT = 'timeout';
 
     protected $keyType = 'string';

@@ -1,10 +1,21 @@
 <?php
 
+use App\Jobs\QueueHeartbeat;
 use App\Models\BackupResult;
 use App\Models\RemoteControlCommand;
+use App\Services\SystemHealthService;
 use Illuminate\Support\Facades\Schedule;
 
+// Heartbeats for Settings → Health.
+Schedule::call(fn () => app(SystemHealthService::class)->beat(SystemHealthService::SCHEDULER))
+    ->everyMinute()->name('health-scheduler');
+Schedule::job(new QueueHeartbeat)->everyFiveMinutes()->name('health-queue');
+
 Schedule::command('backups:check-overdue')->hourly()->withoutOverlapping();
+
+if (config('backups.central.enabled')) {
+    Schedule::command('app:backup')->dailyAt(config('backups.central.time'))->withoutOverlapping();
+}
 
 // Summaries for channels that opted in (BACKUP_DIGEST_TIME, app timezone).
 Schedule::command('backups:send-digest daily')->dailyAt(config('backups.digest_time'))->withoutOverlapping();

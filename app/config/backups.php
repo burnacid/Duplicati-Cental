@@ -25,4 +25,17 @@ return [
     | weekly summary on Mondays. Channels choose which one they receive.
     */
     'digest_time' => env('BACKUP_DIGEST_TIME', '08:00'),
+
+    /*
+    | Backups of Duplicati Central itself (php artisan app:backup): database,
+    | APP_KEY and remote-control keys. Optional daily run at `time` (app timezone);
+    | the newest `keep` backups are kept (0 = all). `password` encrypts them (AES-256).
+    */
+    'central' => [
+        'enabled' => (bool) env('CENTRAL_BACKUP_ENABLED', false),
+        'time' => env('CENTRAL_BACKUP_TIME', '03:00'),
+        'keep' => (int) env('CENTRAL_BACKUP_KEEP', 7),
+        'path' => env('CENTRAL_BACKUP_PATH') ?: storage_path('backups'),
+        'password' => env('CENTRAL_BACKUP_PASSWORD'),
+    ],
 ];

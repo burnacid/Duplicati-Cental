@@ -13,12 +13,17 @@ class NotificationChannel extends Model
     use HasFactory;
 
     public const NOTIFY_ALL = 'all';
+
     public const NOTIFY_WARNING = 'warning';
+
     public const NOTIFY_ERROR = 'error';
 
     public const DIGEST_OFF = 'off';
+
     public const DIGEST_DAILY = 'daily';
+
     public const DIGEST_WEEKLY = 'weekly';
+
     public const DIGESTS = [self::DIGEST_OFF, self::DIGEST_DAILY, self::DIGEST_WEEKLY];
 
     protected $fillable = ['name', 'type', 'config', 'is_active', 'notify_on', 'notify_overdue', 'digest', 'user_id'];

@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RemoteControlAgentState extends Model
 {
-
     protected $fillable = [
         'remote_control_registration_id',
         'connected_at',
@@ -39,4 +38,3 @@ class RemoteControlAgentState extends Model
         return $this->last_seen_at->gt(now()->subSeconds(90));
     }
 }
-

@@ -4,23 +4,24 @@ use App\Models\RemoteControlCommand;
 use App\Models\RemoteControlRegistration;
 use App\Services\RemoteControlCertificateService;
 use App\Services\RemoteControlConnectionHandler;
+use Ratchet\Client\WebSocket;
 use React\EventLoop\Loop;
 use React\Promise\Deferred;
 
-use function React\Async\await;
 use function Ratchet\Client\connect;
+use function React\Async\await;
 
 test('a pending command is dispatched over the connection and the agent reply completes it', function () {
     $registration = RemoteControlRegistration::query()->create([
         'instance_id' => 'cmd-roundtrip-instance',
         'machine_id' => 'cmd-roundtrip-machine',
         'machine_name' => 'Command Roundtrip Machine',
-        'registration_token' => 'reg-' . bin2hex(random_bytes(8)),
-        'claim_token' => 'claim-' . bin2hex(random_bytes(8)),
+        'registration_token' => 'reg-'.bin2hex(random_bytes(8)),
+        'claim_token' => 'claim-'.bin2hex(random_bytes(8)),
         'status' => RemoteControlRegistration::STATUS_CLAIMED,
         'expires_at' => now()->addHour(),
         'claimed_at' => now(),
-        'jwt' => 'jwt-' . bin2hex(random_bytes(8)),
+        'jwt' => 'jwt-'.bin2hex(random_bytes(8)),
         'settings' => [
             'settingsversion' => '1',
             'reportingurl' => 'https://central.example.test/api/backup-servers/test/key/backup-result',
@@ -34,10 +35,10 @@ test('a pending command is dispatched over the connection and the agent reply co
     [$socket, $server, $url, $loop] = startRemoteControlTestServer();
 
     try {
-        $deferred = new Deferred();
+        $deferred = new Deferred;
         $stage = 'await_welcome';
 
-        /** @var \Ratchet\Client\WebSocket $connection */
+        /** @var WebSocket $connection */
         $connection = await(connect($url, [], [], $loop));
 
         $connection->on('message', function ($msg) use (
@@ -101,7 +102,7 @@ test('a pending command is dispatched over the connection and the agent reply co
         });
 
         // Wait for auth to complete before creating + dispatching the command.
-        $authSettled = new Deferred();
+        $authSettled = new Deferred;
         Loop::get()->addTimer(0.2, function () use ($authSettled) {
             $authSettled->resolve(null);
         });

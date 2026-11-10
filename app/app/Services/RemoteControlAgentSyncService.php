@@ -101,4 +101,3 @@ class RemoteControlAgentSyncService
         $state->save();
     }
 }
-

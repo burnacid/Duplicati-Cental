@@ -28,7 +28,9 @@ Duplicati instance
 Scheduler (routes/console.php)
   ├─ backups:check-overdue (hourly) → NotificationService::notifyOverdue (skips snoozed jobs)
   ├─ backups:send-digest daily|weekly (BACKUP_DIGEST_TIME) → DigestService::build → NotificationService::notifyDigest
-  └─ daily pruning (retention settings in config/backups.php)
+  ├─ daily pruning (retention settings in config/backups.php)
+  ├─ heartbeats every minute (scheduler) / 5 min (QueueHeartbeat job) → SystemHealthService
+  └─ app:backup daily when CENTRAL_BACKUP_ENABLED → CentralBackupService
 ```
 
 - **Web routes** (`routes/web.php`): all UI pages are full Livewire components (`App\Livewire\*`), including `NotificationChannels\Index`.
@@ -58,6 +60,8 @@ Scheduler (routes/console.php)
 - Dashboard data (per-job history, day statuses, overdue detection) comes from `App\Services\BackupHealthService`. Each job also carries `monitored`, `is_muted`, `muted_until` and `interval_source` (manual/learned/fallback); a manual interval is overdue after one missed run plus the grace period. Show the flags with `<x-job-flags :job="$job" />`.
 - **PWA**: `public/site.webmanifest`, `public/sw.js` (caches only `/build/*` and icons; pages are never cached), `public/offline.html`, `resources/js/pwa.js` (install button store `$store.pwa`, `window.dcSetFailingJobs()` for the tab title / app badge, fed by `App\Livewire\FailingJobsBadge` in the sidebar). Bump `CACHE` in `sw.js` when the precached files change.
 - **Size chart**: `<x-size-trend-chart :points="..." />` renders inline SVG from `App\Support\SizeTrendChart` (no JS chart library).
+- **Health** (Settings → Health, `App\Livewire\Settings\Health`): `App\Services\SystemHealthService::checks()` returns `{key, label, status (ok|warning|error|off), summary, detail}`. Background processes report with `beat()` (cached timestamps); the websocket server beats every 30 s. It shows installation status only, never user data, so every signed-in user may see it. Add a check there for any new background process.
+- **Self-backup**: `App\Services\CentralBackupService` (`app:backup` / `app:restore`) zips a `VACUUM INTO` snapshot of SQLite, `APP_KEY` and `storage/app/remote-control/*.pem` with a `manifest.json` (format 1, optional AES-256 password) into `config('backups.central.path')` (`storage/backups`). Restore checks everything before writing and keeps the old database as `*.before-restore-*`. Include any new secret file in storage there.
 
 ## Adding a New Notification Channel Type
 1. `config/notification_channels.php` – add `'type_key' => 'Display Name'` to `available_types`.
@@ -84,6 +88,7 @@ Scheduler (routes/console.php)
 ## Versioning & Releases
 - `VERSION` (repo root) holds the version (SemVer). The app reads it via `config('app.version')`: `APP_VERSION` env in Docker, otherwise the `VERSION` file. It is shown in the sidebar.
 - Record every user-visible change under `## [Unreleased]` in `CHANGELOG.md` (Keep a Changelog: Added / Changed / Fixed / Security).
+- `ROADMAP.md` lists planned work per version. When a change ships a roadmap item, remove it there (it now lives in `CHANGELOG.md`).
 - Release with `./release.ps1` (PowerShell 7) from a clean, pushed `master`: first release `./release.ps1`, later `./release.ps1 -Bump patch|minor|major`. Use `-DryRun` to build without publishing. It runs the tests, moves the Unreleased notes into the new version, commits `Release vX.Y.Z`, tags `vX.Y.Z`, pushes the image `burnacid/duplicati-central:{X.Y.Z, X.Y, latest}` to Docker Hub, pushes git and creates the GitHub release. Needs `docker login` and `gh auth login`.
 - `.dockerignore` keeps secrets out of the public image (`.env`, `storage/app/*` incl. remote-control keys, logs, sessions). Keep it that way when adding files with secrets.
 
@@ -92,5 +97,8 @@ Scheduler (routes/console.php)
 - `phpunit.xml` forces the test environment (`force="true"`), including feature switches, so a local `.env` cannot change test behaviour.
 - Run a single test file: `php artisan test --filter=YourTestName` from `app/`.
 - `tests/Feature/UserIsolationTest.php` checks that users cannot see or change each other's data. Add a case there for every new user-owned page.
-- On Windows, the two websocket/roundtrip tests fail unless PHP can find `openssl.cnf` (RSA key generation); they pass in Docker.
+- RSA key generation falls back to `resources/openssl.cnf` when PHP has no OpenSSL config (common on Windows), so the full suite runs on Windows too.
+- **Upgrade tests**: `tests/Feature/DatabaseUpgradeTest.php` loads frozen databases from `tests/Fixtures/database-*.sql` (pre-v0.1 legacy and v0.1.0) and migrates them to the current schema. Never regenerate these fixtures from today's migrations or edit old migrations; add a new fixture when a release changes data in a migration.
+- **Code style**: Pint (Laravel preset). Run `vendor/bin/pint` before committing; CI runs `pint --test`.
+- **CI**: `.github/workflows/ci.yml` (repo root) runs Pint, the tests and a Docker build (not pushed) on pushes to `master` and on pull requests.
 

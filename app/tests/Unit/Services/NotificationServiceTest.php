@@ -38,7 +38,7 @@ function makeResult(User $user, string $status): BackupResult
 {
     $server = BackupServer::query()->create(['name' => 'NAS', 'user_id' => $user->id]);
 
-    $result = new BackupResult();
+    $result = new BackupResult;
     $result->backup_server_id = $server->id;
     $result->extra = ['backup-name' => 'Documents', 'backup-id' => '1', 'machine-id' => 'm1'];
     $result->MainOperation = 'Backup';

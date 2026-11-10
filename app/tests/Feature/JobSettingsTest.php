@@ -12,9 +12,9 @@ use App\Services\NotificationService;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 
-function jobResult(BackupServer $server, \DateTimeInterface $end, string $status = 'Success', string $backupId = '1'): BackupResult
+function jobResult(BackupServer $server, DateTimeInterface $end, string $status = 'Success', string $backupId = '1'): BackupResult
 {
-    $result = new BackupResult();
+    $result = new BackupResult;
     $result->backup_server_id = $server->id;
     $result->extra = ['backup-name' => 'Documents', 'backup-id' => $backupId, 'machine-id' => 'm1'];
     $result->MainOperation = 'Backup';

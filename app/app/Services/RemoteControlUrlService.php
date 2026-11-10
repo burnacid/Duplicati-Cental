@@ -26,12 +26,12 @@ class RemoteControlUrlService
 
     public function websocketUrl(?Request $request = null): string
     {
-        return $this->bridgeBaseUrl($request) . $this->normalizedPath(config('remote_control.websocket_path', '/api/remote-control/ws'));
+        return $this->bridgeBaseUrl($request).$this->normalizedPath(config('remote_control.websocket_path', '/api/remote-control/ws'));
     }
 
     public function certificatesUrl(?Request $request = null): string
     {
-        return $this->appBaseUrl($request) . $this->normalizedPath(config('remote_control.certificates_path', '/api/remote-control/certificates'));
+        return $this->appBaseUrl($request).$this->normalizedPath(config('remote_control.certificates_path', '/api/remote-control/certificates'));
     }
 
     /**
@@ -58,18 +58,18 @@ class RemoteControlUrlService
             ? $this->normalizeBridgeUrl($configured)
             : $this->convertHttpToWebsocket($this->baseUrlFor($registration));
 
-        return $base . $this->normalizedPath(config('remote_control.websocket_path', '/api/remote-control/ws'));
+        return $base.$this->normalizedPath(config('remote_control.websocket_path', '/api/remote-control/ws'));
     }
 
     public function certificatesUrlFor(RemoteControlRegistration $registration): string
     {
-        return $this->baseUrlFor($registration) . $this->normalizedPath(config('remote_control.certificates_path', '/api/remote-control/certificates'));
+        return $this->baseUrlFor($registration).$this->normalizedPath(config('remote_control.certificates_path', '/api/remote-control/certificates'));
     }
 
     /** Reporting URL (send-http-url) for a backup server, on the instance's address. */
     public function reportingUrlFor(RemoteControlRegistration $registration, BackupServer $server): string
     {
-        return $this->baseUrlFor($registration) . '/api/backup-servers/' . $server->id . '/' . $server->api_key . '/backup-result';
+        return $this->baseUrlFor($registration).'/api/backup-servers/'.$server->id.'/'.$server->api_key.'/backup-result';
     }
 
     /**
@@ -81,8 +81,8 @@ class RemoteControlUrlService
     public function registrationUrls(Request $request): array
     {
         $path = '/api/remote-control/register';
-        $public = $this->appBaseUrl() . $path;
-        $current = $this->normalizeBaseUrl($request->getSchemeAndHttpHost()) . $path;
+        $public = $this->appBaseUrl().$path;
+        $current = $this->normalizeBaseUrl($request->getSchemeAndHttpHost()).$path;
 
         return $current === $public
             ? ['Registration URL' => $public]
@@ -107,7 +107,7 @@ class RemoteControlUrlService
 
     private function normalizedPath(string $path): string
     {
-        return '/' . ltrim($path, '/');
+        return '/'.ltrim($path, '/');
     }
 
     private function convertHttpToWebsocket(string $value): string
@@ -117,4 +117,3 @@ class RemoteControlUrlService
             : str_replace('http://', 'ws://', $value);
     }
 }
-

@@ -13,10 +13,15 @@ class Index extends Component
     public ?int $editingId = null;
 
     public string $name = '';
+
     public string $type = 'email';
+
     public bool $is_active = true;
+
     public string $notify_on = NotificationChannel::NOTIFY_WARNING;
+
     public bool $notify_overdue = true;
+
     public string $digest = NotificationChannel::DIGEST_OFF;
 
     /** Config keys holding secrets: never sent back to the browser, kept when left empty on edit. */
@@ -26,7 +31,9 @@ class Index extends Component
     public array $config = [];
 
     public ?int $deleteId = null;
+
     public ?string $flash = null;
+
     public ?string $flashVariant = null;
 
     public function mount(): void
@@ -111,7 +118,7 @@ class Index extends Component
             $notifications->sendTest($channel);
             $this->showFlash("Test notification sent via \"{$channel->name}\".");
         } catch (\Throwable $e) {
-            $this->showFlash('Sending failed: ' . $e->getMessage(), 'danger');
+            $this->showFlash('Sending failed: '.$e->getMessage(), 'danger');
         }
     }
 

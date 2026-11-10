@@ -6,6 +6,7 @@ use App\Enums\BackupStatus;
 use App\Models\BackupResult;
 use App\Models\NotificationChannel;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -59,13 +60,13 @@ class NotificationService
     /**
      * Notify about a backup job that stopped reporting.
      *
-     * @param array{server_name: string, backup_name: string, last_backup_at: ?\Carbon\CarbonInterface} $job
+     * @param  array{server_name: string, backup_name: string, last_backup_at: ?CarbonInterface}  $job
      */
     public function notifyOverdue(User $user, array $job): void
     {
         $subject = sprintf('[Overdue] %s - %s', $job['server_name'], $job['backup_name']);
         $message = sprintf(
-            "Backup \"%s\" on %s has not reported since %s.",
+            'Backup "%s" on %s has not reported since %s.',
             $job['backup_name'],
             $job['server_name'],
             $job['last_backup_at']?->format('Y-m-d H:i') ?? 'unknown',
@@ -88,13 +89,13 @@ class NotificationService
      */
     public function sendTest(NotificationChannel $channel): void
     {
-        $this->sendToChannel($channel, 'This is a test notification from ' . config('app.name') . '.', 'Test notification', ['event' => 'test']);
+        $this->sendToChannel($channel, 'This is a test notification from '.config('app.name').'.', 'Test notification', ['event' => 'test']);
     }
 
     /**
      * Send a summary to the channels that asked for this digest frequency.
      *
-     * @param array{subject: string, message: string, context: array} $digest from DigestService::build()
+     * @param  array{subject: string, message: string, context: array}  $digest  from DigestService::build()
      */
     public function notifyDigest(User $user, string $frequency, array $digest): int
     {
@@ -170,7 +171,7 @@ class NotificationService
             'body' => $body,
         ];
         if (! empty($context['url'])) {
-            $card['actions'] = [['type' => 'Action.OpenUrl', 'title' => 'Open in ' . config('app.name'), 'url' => $context['url']]];
+            $card['actions'] = [['type' => 'Action.OpenUrl', 'title' => 'Open in '.config('app.name'), 'url' => $context['url']]];
         }
 
         Http::timeout(10)->post($channel->config['webhook_url'], [
@@ -183,7 +184,7 @@ class NotificationService
     {
         $config = $channel->config ?? [];
 
-        Http::timeout(10)->post('https://api.telegram.org/bot' . $config['bot_token'] . '/sendMessage', [
+        Http::timeout(10)->post('https://api.telegram.org/bot'.$config['bot_token'].'/sendMessage', [
             'chat_id' => $config['chat_id'],
             'text' => Str::limit($subject ? "{$subject}\n\n{$message}" : $message, 4000),
             'disable_web_page_preview' => true,
@@ -226,7 +227,7 @@ class NotificationService
     protected function sendEmail(NotificationChannel $channel, string $message, ?string $subject): void
     {
         $config = $channel->config ?? [];
-        $subject = $subject ?? ($config['subject'] ?? config('app.name') . ' notification');
+        $subject = $subject ?? ($config['subject'] ?? config('app.name').' notification');
         $split = fn ($value) => array_values(array_filter(array_map('trim', explode(',', (string) $value))));
 
         $send = function ($mail) use ($config, $subject, $split) {
@@ -288,9 +289,9 @@ class NotificationService
     {
         $lines = [
             sprintf('%s of "%s" on %s finished with status %s.', $result->MainOperation, $result->backup_name, $result->backupServer->name, $result->ParsedResult),
-            'Finished: ' . ($result->EndTime?->format('Y-m-d H:i') ?? 'unknown'),
+            'Finished: '.($result->EndTime?->format('Y-m-d H:i') ?? 'unknown'),
             sprintf('Warnings: %d, Errors: %d', $result->WarningsActualLength, $result->ErrorsActualLength),
-            'Details: ' . route('backup-detail', $result->id),
+            'Details: '.route('backup-detail', $result->id),
         ];
 
         return implode("\n", $lines);

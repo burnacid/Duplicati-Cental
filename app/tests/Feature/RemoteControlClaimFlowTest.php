@@ -10,8 +10,8 @@ function createPendingRemoteRegistration(array $overrides = []): RemoteControlRe
         'instance_id' => 'instance-claim-test',
         'machine_id' => 'machine-claim-test',
         'machine_name' => 'Claim Test Machine',
-        'registration_token' => 'reg-token-' . bin2hex(random_bytes(8)),
-        'claim_token' => 'claim-token-' . bin2hex(random_bytes(8)),
+        'registration_token' => 'reg-token-'.bin2hex(random_bytes(8)),
+        'claim_token' => 'claim-token-'.bin2hex(random_bytes(8)),
         'status' => RemoteControlRegistration::STATUS_PENDING,
         'expires_at' => now()->addHour(),
     ], $overrides));
@@ -86,4 +86,3 @@ test('claimed instance appears in remote control index for owning user only', fu
     $response->assertSee($owned->machine_name);
     $response->assertDontSee('Other machine');
 });
-

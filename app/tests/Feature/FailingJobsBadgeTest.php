@@ -5,14 +5,13 @@ use App\Models\BackupJobSetting;
 use App\Models\BackupResult;
 use App\Models\BackupServer;
 use App\Models\User;
-use App\Services\BackupHealthService;
 use Livewire\Livewire;
 
 function badgeResult(BackupServer $server, string $backupId, string $status): void
 {
-    $result = new BackupResult();
+    $result = new BackupResult;
     $result->backup_server_id = $server->id;
-    $result->extra = ['backup-name' => 'Job ' . $backupId, 'backup-id' => $backupId, 'machine-id' => 'm1'];
+    $result->extra = ['backup-name' => 'Job '.$backupId, 'backup-id' => $backupId, 'machine-id' => 'm1'];
     $result->MainOperation = 'Backup';
     $result->ParsedResult = $status;
     $result->Interrupted = false;

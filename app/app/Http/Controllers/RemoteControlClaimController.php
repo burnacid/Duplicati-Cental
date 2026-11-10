@@ -32,8 +32,7 @@ class RemoteControlClaimController extends Controller
         RemoteControlProvisioningService $provisioningService,
         RemoteControlSettingsService $settingsService,
         RemoteControlUrlService $urlService
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $registration = RemoteControlRegistration::query()
             ->where('claim_token', $claimToken)
             ->firstOrFail();
@@ -88,5 +87,3 @@ class RemoteControlClaimController extends Controller
             ->with('status', 'Instance claimed successfully.');
     }
 }
-
-

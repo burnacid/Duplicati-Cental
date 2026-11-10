@@ -7,6 +7,17 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+### Added
+- Backup of Duplicati Central itself: `php artisan app:backup` saves the database, encryption key and remote-control keys in one file (optionally password protected), and `php artisan app:restore` puts them back. Set `CENTRAL_BACKUP_ENABLED=true` for a daily backup (`CENTRAL_BACKUP_TIME`, `CENTRAL_BACKUP_KEEP`, `CENTRAL_BACKUP_PASSWORD`).
+- Settings → Health: shows whether the scheduler, queue worker and remote-control server are running, whether the database is up to date, free disk space and the last backup of Central.
+- README with screenshots, installation, Duplicati setup, all settings, backup/restore and upgrade steps.
+
+### Changed
+- Every change is now tested on GitHub Actions (tests, code style and a Docker build), including upgrades from databases of earlier versions.
+
+### Fixed
+- Log lines with a timestamp on the backup detail page were spread over several lines with large gaps.
+
 ## [0.3.0] - 2026-11-10
 
 ### Added

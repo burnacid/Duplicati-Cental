@@ -2,6 +2,4 @@
 
 namespace App\Exceptions;
 
-class RemoteControlCertificateException extends \RuntimeException
-{
-}
+class RemoteControlCertificateException extends \RuntimeException {}

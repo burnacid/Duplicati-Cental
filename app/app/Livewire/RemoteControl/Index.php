@@ -12,7 +12,9 @@ class Index extends Component
     use WithPagination;
 
     public string $search = '';
+
     public string $bridgeWebsocketUrl = '';
+
     /** @var array<string, string> label => URL */
     public array $registrationUrls = [];
 
@@ -50,10 +52,10 @@ class Index extends Component
             ->where('claimed_by_user_id', auth()->id())
             ->when($this->search !== '', function ($query) {
                 $query->where(function ($inner) {
-                    $inner->where('machine_name', 'like', '%' . $this->search . '%')
-                        ->orWhereHas('backupServer', fn ($server) => $server->where('name', 'like', '%' . $this->search . '%'))
-                        ->orWhere('machine_id', 'like', '%' . $this->search . '%')
-                        ->orWhere('version', 'like', '%' . $this->search . '%');
+                    $inner->where('machine_name', 'like', '%'.$this->search.'%')
+                        ->orWhereHas('backupServer', fn ($server) => $server->where('name', 'like', '%'.$this->search.'%'))
+                        ->orWhere('machine_id', 'like', '%'.$this->search.'%')
+                        ->orWhere('version', 'like', '%'.$this->search.'%');
                 });
             })
             ->latest('claimed_at')
@@ -64,4 +66,3 @@ class Index extends Component
         ]);
     }
 }
-

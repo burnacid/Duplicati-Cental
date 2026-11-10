@@ -5,6 +5,7 @@ use App\Models\RemoteControlRegistration;
 use App\Services\RemoteControlCertificateService;
 use App\Services\RemoteControlConnectionHandler;
 use App\Services\RemoteControlCryptoService;
+use Ratchet\Client\WebSocket;
 use Ratchet\Http\HttpServer;
 use Ratchet\Server\IoServer;
 use Ratchet\WebSocket\WsServer;
@@ -12,8 +13,8 @@ use React\EventLoop\Loop;
 use React\Promise\Deferred;
 use React\Socket\SocketServer;
 
-use function React\Async\await;
 use function Ratchet\Client\connect;
+use function React\Async\await;
 
 function startRemoteControlTestServer(): array
 {
@@ -22,20 +23,18 @@ function startRemoteControlTestServer(): array
     $server = new IoServer(new HttpServer(new WsServer(app(RemoteControlConnectionHandler::class))), $socket, $loop);
 
     $port = (int) parse_url((string) $socket->getAddress(), PHP_URL_PORT);
-    $url = "ws://127.0.0.1:{$port}" . config('remote_control.websocket_path');
+    $url = "ws://127.0.0.1:{$port}".config('remote_control.websocket_path');
 
     return [$socket, $server, $url, $loop];
 }
 
 function makeStandaloneClientCryptoService(): RemoteControlCryptoService
 {
-    $tempPath = sys_get_temp_dir() . '/rc-ws-test-client-' . bin2hex(random_bytes(8));
+    $tempPath = sys_get_temp_dir().'/rc-ws-test-client-'.bin2hex(random_bytes(8));
 
     $certificateService = new class($tempPath) extends RemoteControlCertificateService
     {
-        public function __construct(private readonly string $tempPath)
-        {
-        }
+        public function __construct(private readonly string $tempPath) {}
 
         protected function resolveStoragePath(): string
         {
@@ -50,9 +49,9 @@ test('welcome envelope is sent in plaintext on connect', function () {
     [$socket, $server, $url, $loop] = startRemoteControlTestServer();
 
     try {
-        $deferred = new Deferred();
+        $deferred = new Deferred;
 
-        /** @var \Ratchet\Client\WebSocket $connection */
+        /** @var WebSocket $connection */
         $connection = await(connect($url, [], [], $loop));
         $connection->on('message', function ($msg) use ($deferred) {
             $deferred->resolve(json_decode((string) $msg, true));
@@ -78,12 +77,12 @@ test('full handshake authenticates, pushes pending settings, and records the ack
         'instance_id' => 'ws-test-instance',
         'machine_id' => 'ws-test-machine',
         'machine_name' => 'WS Test Machine',
-        'registration_token' => 'reg-' . bin2hex(random_bytes(8)),
-        'claim_token' => 'claim-' . bin2hex(random_bytes(8)),
+        'registration_token' => 'reg-'.bin2hex(random_bytes(8)),
+        'claim_token' => 'claim-'.bin2hex(random_bytes(8)),
         'status' => RemoteControlRegistration::STATUS_CLAIMED,
         'expires_at' => now()->addHour(),
         'claimed_at' => now(),
-        'jwt' => 'jwt-' . bin2hex(random_bytes(8)),
+        'jwt' => 'jwt-'.bin2hex(random_bytes(8)),
         'settings' => [
             'settingsversion' => '2',
             'reportingurl' => 'https://central.example.test/api/backup-servers/test/key/backup-result',
@@ -98,11 +97,11 @@ test('full handshake authenticates, pushes pending settings, and records the ack
     [$socket, $server, $url, $loop] = startRemoteControlTestServer();
 
     try {
-        $deferred = new Deferred();
+        $deferred = new Deferred;
         $seen = [];
         $stage = 'await_welcome';
 
-        /** @var \Ratchet\Client\WebSocket $connection */
+        /** @var WebSocket $connection */
         $connection = await(connect($url, [], [], $loop));
 
         $connection->on('message', function ($msg) use (

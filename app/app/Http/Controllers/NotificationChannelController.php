@@ -11,12 +11,14 @@ class NotificationChannelController extends Controller
     public function index()
     {
         $channels = auth()->user()->notificationChannels;
+
         return view('notification-channels.index', compact('channels'));
     }
 
     public function create()
     {
         $types = Config::get('notification_channels.available_types');
+
         return view('notification-channels.create', compact('types'));
     }
 
@@ -24,7 +26,7 @@ class NotificationChannelController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|string|in:' . implode(',', array_keys(Config::get('notification_channels.available_types'))),
+            'type' => 'required|string|in:'.implode(',', array_keys(Config::get('notification_channels.available_types'))),
             'config' => 'required|array',
         ]);
 
@@ -37,6 +39,7 @@ class NotificationChannelController extends Controller
     {
         $this->authorize('update', $notificationChannel);
         $types = Config::get('notification_channels.available_types');
+
         return view('notification-channels.edit', compact('notificationChannel', 'types'));
     }
 
@@ -46,7 +49,7 @@ class NotificationChannelController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|string|in:' . implode(',', array_keys(Config::get('notification_channels.available_types'))),
+            'type' => 'required|string|in:'.implode(',', array_keys(Config::get('notification_channels.available_types'))),
             'config' => 'required|array',
             'is_active' => 'boolean',
         ]);

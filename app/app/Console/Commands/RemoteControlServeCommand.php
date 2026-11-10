@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\RemoteControlConnectionHandler;
+use App\Services\SystemHealthService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Ratchet\Http\HttpServer;
@@ -17,7 +18,7 @@ class RemoteControlServeCommand extends Command
 
     protected $description = 'Run the persistent remote-control websocket server for Duplicati agents.';
 
-    public function handle(RemoteControlConnectionHandler $handler): int
+    public function handle(RemoteControlConnectionHandler $handler, SystemHealthService $health): int
     {
         if (! config('remote_control.enabled')) {
             $this->info('Remote control is disabled (REMOTE_CONTROL_ENABLED=false); websocket server not started.');
@@ -40,6 +41,15 @@ class RemoteControlServeCommand extends Command
                 $handler->reapStaleCommands();
             } catch (\Throwable $e) {
                 Log::error('remote-control: periodic command tick failed', ['error' => $e->getMessage()]);
+            }
+        });
+
+        $health->beat(SystemHealthService::WEBSOCKET);
+        $loop->addPeriodicTimer(30.0, function () use ($health): void {
+            try {
+                $health->beat(SystemHealthService::WEBSOCKET);
+            } catch (\Throwable $e) {
+                Log::warning('remote-control: heartbeat failed', ['error' => $e->getMessage()]);
             }
         });
 

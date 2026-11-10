@@ -11,9 +11,9 @@ use Illuminate\Support\Facades\Http;
 
 function digestResult(BackupServer $server, string $backupId, string $status, int $hoursAgo): void
 {
-    $result = new BackupResult();
+    $result = new BackupResult;
     $result->backup_server_id = $server->id;
-    $result->extra = ['backup-name' => 'Job ' . $backupId, 'backup-id' => $backupId, 'machine-id' => 'm1'];
+    $result->extra = ['backup-name' => 'Job '.$backupId, 'backup-id' => $backupId, 'machine-id' => 'm1'];
     $result->MainOperation = 'Backup';
     $result->ParsedResult = $status;
     $result->Interrupted = false;

@@ -4,13 +4,14 @@ use App\Livewire\Settings\Passkeys;
 use App\Livewire\Settings\TwoFactor;
 use App\Models\User;
 use App\Services\TwoFactorAuthenticationService;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Livewire\Volt\Volt;
 use PragmaRX\Google2FA\Google2FA;
 
 function enableTotp(User $user): string
 {
-    $secret = (new Google2FA())->generateSecretKey(32);
+    $secret = (new Google2FA)->generateSecretKey(32);
     app(TwoFactorAuthenticationService::class)->enable($user, $secret);
 
     return $secret;
@@ -19,7 +20,7 @@ function enableTotp(User $user): string
 /** Passkey rows need real WebAuthn data for the model cast; tests only need the row. */
 function insertPasskey(User $user, string $name): object
 {
-    $id = \Illuminate\Support\Facades\DB::table('passkeys')->insertGetId([
+    $id = DB::table('passkeys')->insertGetId([
         'authenticatable_id' => $user->id, 'name' => $name, 'credential_id' => $name, 'data' => '{}',
         'created_at' => now(), 'updated_at' => now(),
     ]);
@@ -29,7 +30,7 @@ function insertPasskey(User $user, string $name): object
 
 function otp(string $secret, int $offsetSteps = 0): string
 {
-    $g = new Google2FA();
+    $g = new Google2FA;
 
     return $g->oathTotp($secret, $g->getTimestamp() + $offsetSteps);
 }
@@ -50,7 +51,7 @@ test('a user can set up TOTP and gets recovery codes', function () {
     $user->refresh();
     expect($user->hasTwoFactorEnabled())->toBeTrue()
         ->and($user->two_factor_recovery_codes)->toHaveCount(8)
-        ->and(\Illuminate\Support\Facades\DB::table('users')->value('two_factor_secret'))->not->toBe($secret); // encrypted at rest
+        ->and(DB::table('users')->value('two_factor_secret'))->not->toBe($secret); // encrypted at rest
 });
 
 test('login with TOTP asks for a code before signing in', function () {

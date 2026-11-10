@@ -9,7 +9,7 @@ use Livewire\Livewire;
 
 function sizedResult(BackupServer $server, int $daysAgo, int $source, int $backup, string $operation = 'Backup'): void
 {
-    $result = new BackupResult();
+    $result = new BackupResult;
     $result->backup_server_id = $server->id;
     $result->extra = ['backup-name' => 'Documents', 'backup-id' => 'DB-1', 'machine-id' => 'm1'];
     $result->MainOperation = $operation;

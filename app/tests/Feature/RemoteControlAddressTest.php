@@ -2,6 +2,7 @@
 
 use App\Models\RemoteControlRegistration;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Middleware\TrustProxies;
 
 const PUBLIC_URL = 'https://central.lenders-it.nl';
@@ -19,17 +20,17 @@ afterEach(function () {
 function registerFrom(string $url, array $headers = []): RemoteControlRegistration
 {
     test()->withHeaders($headers)
-        ->postJson($url . '/api/remote-control/register', ['machineId' => 'm-' . md5($url), 'machineName' => 'Host'])
+        ->postJson($url.'/api/remote-control/register', ['machineId' => 'm-'.md5($url), 'machineName' => 'Host'])
         ->assertOk();
 
-    return RemoteControlRegistration::query()->where('machine_id', 'm-' . md5($url))->firstOrFail();
+    return RemoteControlRegistration::query()->where('machine_id', 'm-'.md5($url))->firstOrFail();
 }
 
 function claimFrom(string $browserUrl, RemoteControlRegistration $registration): RemoteControlRegistration
 {
     test()->actingAs(test()->user)
-        ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
-        ->post($browserUrl . '/remote-control/claim/' . $registration->claim_token)
+        ->withoutMiddleware(ValidateCsrfToken::class)
+        ->post($browserUrl.'/remote-control/claim/'.$registration->claim_token)
         ->assertRedirect();
 
     return $registration->fresh();
@@ -42,8 +43,8 @@ test('an instance registered on the LAN address gets LAN URLs, even when claimed
     $claimed = claimFrom(PUBLIC_URL, $registration);
 
     expect($claimed->server_url)->toBe('ws://10.2.21.252:8181/api/remote-control/ws')
-        ->and($claimed->certificate_url)->toBe(LAN_URL . '/api/remote-control/certificates')
-        ->and($claimed->settings['reportingurl'])->toStartWith(LAN_URL . '/api/backup-servers/')
+        ->and($claimed->certificate_url)->toBe(LAN_URL.'/api/remote-control/certificates')
+        ->and($claimed->settings['reportingurl'])->toStartWith(LAN_URL.'/api/backup-servers/')
         ->and($claimed->settings['dashboardurl'])->toBe(LAN_URL);
 });
 
@@ -60,14 +61,14 @@ test('an instance registered through the reverse proxy gets public wss URLs, eve
     $claimed = claimFrom(LAN_URL, $registration);
 
     expect($claimed->server_url)->toBe('wss://central.lenders-it.nl/api/remote-control/ws')
-        ->and($claimed->certificate_url)->toBe(PUBLIC_URL . '/api/remote-control/certificates')
-        ->and($claimed->settings['reportingurl'])->toStartWith(PUBLIC_URL . '/api/backup-servers/');
+        ->and($claimed->certificate_url)->toBe(PUBLIC_URL.'/api/remote-control/certificates')
+        ->and($claimed->settings['reportingurl'])->toStartWith(PUBLIC_URL.'/api/backup-servers/');
 });
 
 test('the claim link points to the address the instance registered with', function () {
-    $response = test()->postJson(LAN_URL . '/api/remote-control/register', ['machineId' => 'lan-1'])->assertOk();
+    $response = test()->postJson(LAN_URL.'/api/remote-control/register', ['machineId' => 'lan-1'])->assertOk();
 
-    expect($response->json('claimLink'))->toStartWith(LAN_URL . '/remote-control/claim/');
+    expect($response->json('claimLink'))->toStartWith(LAN_URL.'/remote-control/claim/');
 });
 
 test('REMOTE_CONTROL_BRIDGE_URL overrides the websocket address for every instance', function () {
@@ -90,14 +91,14 @@ test('registrations from before this change fall back to APP_URL', function () {
 
 test('the remote control page shows the public and the current registration URL', function () {
     $this->actingAs($this->user)
-        ->get(LAN_URL . '/remote-control')
+        ->get(LAN_URL.'/remote-control')
         ->assertOk()
         ->assertSee('value="https://central.lenders-it.nl/api/remote-control/register"', false)
         ->assertSee('value="http://10.2.21.252:8181/api/remote-control/register"', false)
         ->assertSee('Each instance keeps using the address it registered with');
 
     $this->actingAs($this->user)
-        ->get(PUBLIC_URL . '/remote-control')
+        ->get(PUBLIC_URL.'/remote-control')
         ->assertOk()
         ->assertDontSee('10.2.21.252');
 });

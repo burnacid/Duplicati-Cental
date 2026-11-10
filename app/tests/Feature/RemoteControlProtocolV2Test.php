@@ -12,11 +12,12 @@ use Jose\Component\Encryption\JWEBuilder;
 use Jose\Component\Encryption\JWEDecrypter;
 use Jose\Component\Encryption\Serializer\CompactSerializer;
 use Jose\Component\KeyManagement\JWKFactory;
+use Ratchet\Client\WebSocket;
 use React\EventLoop\Loop;
 use React\Promise\Deferred;
 
-use function React\Async\await;
 use function Ratchet\Client\connect;
+use function React\Async\await;
 
 /**
  * Acts like the Duplicati 2.4 client (protocol 2): it refuses a server without protocol 2,
@@ -27,12 +28,12 @@ test('a protocol 2 client gets end-to-end encrypted commands and its encrypted r
         'instance_id' => 'v2-instance',
         'machine_id' => 'v2-machine',
         'machine_name' => 'Protocol 2 Machine',
-        'registration_token' => 'reg-' . bin2hex(random_bytes(8)),
-        'claim_token' => 'claim-' . bin2hex(random_bytes(8)),
+        'registration_token' => 'reg-'.bin2hex(random_bytes(8)),
+        'claim_token' => 'claim-'.bin2hex(random_bytes(8)),
         'status' => RemoteControlRegistration::STATUS_CLAIMED,
         'expires_at' => now()->addHour(),
         'claimed_at' => now(),
-        'jwt' => 'jwt-' . bin2hex(random_bytes(8)),
+        'jwt' => 'jwt-'.bin2hex(random_bytes(8)),
         'settings' => ['settingsversion' => '0'],
     ]);
 
@@ -45,16 +46,16 @@ test('a protocol 2 client gets end-to-end encrypted commands and its encrypted r
         return JWKFactory::createFromKey($this->certificateService->getOrCreateKeyPair()['private']);
     })->call($clientCrypto);
 
-    $algorithms = new AlgorithmManager([new RSAOAEP256(), new A256GCM()]);
+    $algorithms = new AlgorithmManager([new RSAOAEP256, new A256GCM]);
     $largeResult = array_map(fn ($i) => ['id' => "job-{$i}", 'name' => str_repeat('Backup ', 20)], range(1, 50));
 
     [$socket, $server, $url, $loop] = startRemoteControlTestServer();
 
     try {
-        $deferred = new Deferred();
+        $deferred = new Deferred;
         $stage = 'await_welcome';
 
-        /** @var \Ratchet\Client\WebSocket $connection */
+        /** @var WebSocket $connection */
         $connection = await(connect($url, [], [], $loop));
 
         $connection->on('message', function ($msg) use (
@@ -100,7 +101,7 @@ test('a protocol 2 client gets end-to-end encrypted commands and its encrypted r
                 $wrapper = json_decode($envelope['payload'], true);
                 expect($wrapper['v'])->toBe(2)->and($wrapper)->not->toHaveKey('method');
 
-                $jwe = (new CompactSerializer())->unserialize($wrapper['jwe']);
+                $jwe = (new CompactSerializer)->unserialize($wrapper['jwe']);
                 expect($jwe->getSharedProtectedHeader())->toMatchArray(['alg' => 'RSA-OAEP-256', 'enc' => 'A256GCM'])
                     ->and((new JWEDecrypter($algorithms))->decryptUsingKey($jwe, $clientPrivateKey, 0))->toBeTrue();
 
@@ -126,7 +127,7 @@ test('a protocol 2 client gets end-to-end encrypted commands and its encrypted r
                     'to' => 'server',
                     'type' => 'command',
                     'messageId' => $envelope['messageId'],
-                    'payload' => json_encode(['v' => 2, 'jwe' => (new CompactSerializer())->serialize($responseJwe, 0), 'zip' => 'gzip']),
+                    'payload' => json_encode(['v' => 2, 'jwe' => (new CompactSerializer)->serialize($responseJwe, 0), 'zip' => 'gzip']),
                     'errorMessage' => null,
                 ], $serverPublicKeyPem));
 
@@ -136,7 +137,7 @@ test('a protocol 2 client gets end-to-end encrypted commands and its encrypted r
             }
         });
 
-        $authSettled = new Deferred();
+        $authSettled = new Deferred;
         Loop::get()->addTimer(0.2, fn () => $authSettled->resolve(null));
         await($authSettled->promise());
 

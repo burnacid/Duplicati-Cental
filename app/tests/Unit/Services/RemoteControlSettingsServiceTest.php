@@ -4,7 +4,7 @@ use App\Models\RemoteControlRegistration;
 use App\Services\RemoteControlSettingsService;
 
 test('settings builder injects reporting url and increments settings version', function () {
-    $service = new RemoteControlSettingsService();
+    $service = new RemoteControlSettingsService;
 
     $registration = new RemoteControlRegistration([
         'settings' => [
@@ -25,7 +25,7 @@ test('settings builder injects reporting url and increments settings version', f
 });
 
 test('settings builder initializes dashboard and version when empty', function () {
-    $service = new RemoteControlSettingsService();
+    $service = new RemoteControlSettingsService;
     $registration = new RemoteControlRegistration([
         'settings' => null,
     ]);
@@ -36,4 +36,3 @@ test('settings builder initializes dashboard and version when empty', function (
         ->and($settings['settingsversion'])->toBe('1')
         ->and(isset($settings['reportingurl']))->toBeFalse();
 });
-

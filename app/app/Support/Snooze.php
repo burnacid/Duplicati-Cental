@@ -43,6 +43,6 @@ class Snooze
 
         $local = $until->copy()->setTimezone(config('app.timezone'));
 
-        return 'until ' . ($local->isToday() ? $local->format('H:i') : $local->format('D j M H:i'));
+        return 'until '.($local->isToday() ? $local->format('H:i') : $local->format('D j M H:i'));
     }
 }

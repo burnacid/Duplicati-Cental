@@ -89,8 +89,8 @@ beforeEach(function () {
     $this->registration = RemoteControlRegistration::query()->create([
         'machine_id' => 'machine-42',
         'machine_name' => 'Office PC',
-        'registration_token' => 'reg-' . bin2hex(random_bytes(8)),
-        'claim_token' => 'claim-' . bin2hex(random_bytes(8)),
+        'registration_token' => 'reg-'.bin2hex(random_bytes(8)),
+        'claim_token' => 'claim-'.bin2hex(random_bytes(8)),
         'status' => RemoteControlRegistration::STATUS_CLAIMED,
         'claimed_by_user_id' => $this->user->id,
         'backup_server_id' => $this->server->id,

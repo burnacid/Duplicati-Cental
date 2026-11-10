@@ -8,7 +8,9 @@ use Carbon\CarbonImmutable;
 class RemoteControlCertificateService
 {
     private const KEY_DIRECTORY = 'app/remote-control';
+
     private const PRIVATE_KEY_FILE = 'server_private.pem';
+
     private const PUBLIC_KEY_FILE = 'server_public.pem';
 
     /**
@@ -37,8 +39,8 @@ class RemoteControlCertificateService
     public function getOrCreateKeyPair(): array
     {
         $basePath = $this->resolveStoragePath();
-        $privatePath = $basePath . DIRECTORY_SEPARATOR . self::PRIVATE_KEY_FILE;
-        $publicPath = $basePath . DIRECTORY_SEPARATOR . self::PUBLIC_KEY_FILE;
+        $privatePath = $basePath.DIRECTORY_SEPARATOR.self::PRIVATE_KEY_FILE;
+        $publicPath = $basePath.DIRECTORY_SEPARATOR.self::PUBLIC_KEY_FILE;
 
         if (is_file($privatePath) && is_file($publicPath)) {
             return [
@@ -78,7 +80,7 @@ class RemoteControlCertificateService
             }
         }
 
-        return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'duplicati-central-remote-control';
+        return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'duplicati-central-remote-control';
     }
 
     /**
@@ -103,14 +105,14 @@ class RemoteControlCertificateService
         // PHP on Windows often has no openssl.cnf; retry with the minimal config shipped with the app.
         if (! $exported) {
             $firstErrors = $this->collectOpenSslErrors();
-            $options['config'] = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'openssl.cnf';
+            $options['config'] = dirname(__DIR__, 2).DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'openssl.cnf';
 
             $resource = openssl_pkey_new($options);
             $exported = $resource !== false && openssl_pkey_export($resource, $privateKey, null, $options);
 
             if (! $exported) {
                 throw new RemoteControlCertificateException(
-                    'Failed to generate an RSA key pair: ' . $firstErrors . '; with bundled config: ' . $this->collectOpenSslErrors()
+                    'Failed to generate an RSA key pair: '.$firstErrors.'; with bundled config: '.$this->collectOpenSslErrors()
                 );
             }
         }
@@ -141,4 +143,3 @@ class RemoteControlCertificateService
         return $messages === [] ? 'unknown OpenSSL error' : implode('; ', $messages);
     }
 }
-

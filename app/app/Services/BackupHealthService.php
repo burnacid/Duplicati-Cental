@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\DB;
 class BackupHealthService
 {
     public const HISTORY_DAYS = 60;
+
     public const RECENT_RUNS = 30;
 
     /** @var array<string, array{jobs: Collection, daily: array}> */
@@ -82,7 +83,7 @@ class BackupHealthService
         $settings = BackupJobSetting::query()
             ->whereIn('backup_server_id', $serverIds)
             ->get()
-            ->keyBy(fn (BackupJobSetting $s) => $s->backup_server_id . '|' . $s->backup_id);
+            ->keyBy(fn (BackupJobSetting $s) => $s->backup_server_id.'|'.$s->backup_id);
 
         // Lightweight rows of the last HISTORY_DAYS days, oldest first.
         $rows = DB::table('backup_results')
@@ -97,12 +98,12 @@ class BackupHealthService
             $local = (new DateTimeImmutable($row->EndTime, $utc))->setTimezone($timezone);
             $status = BackupStatus::fromResult($row->ParsedResult);
 
-            $byJob[$row->backup_server_id . '|' . $row->backup_id][] = [
+            $byJob[$row->backup_server_id.'|'.$row->backup_id][] = [
                 'id' => (int) $row->id,
                 'status' => $status,
                 'operation' => $row->MainOperation,
                 'timestamp' => $local->getTimestamp(),
-                'title' => $local->format('Y-m-d H:i') . ' — ' . $row->MainOperation . ' ' . $row->ParsedResult,
+                'title' => $local->format('Y-m-d H:i').' — '.$row->MainOperation.' '.$row->ParsedResult,
             ];
             $day = $local->format('Y-m-d');
             $current = $byServerDay[$row->backup_server_id][$day] ?? BackupStatus::None;
@@ -112,7 +113,7 @@ class BackupHealthService
         }
 
         $jobs = $this->latestResults($serverIds)->map(function (BackupResult $last) use ($servers, $byJob, $detailUrl, $settings) {
-            $key = $last->backup_server_id . '|' . $last->backup_id;
+            $key = $last->backup_server_id.'|'.$last->backup_id;
             $history = $byJob[$key] ?? [];
             $setting = $settings[$key] ?? null;
             $server = $servers[$last->backup_server_id] ?? null;
@@ -184,7 +185,7 @@ class BackupHealthService
                 'backup_results.MainOperation', 'backup_results.ParsedResult', 'backup_results.EndTime',
                 'backup_results.Version', 'backup_results.BackendStatistics',
             ])
-            ->unique(fn ($r) => $r->backup_server_id . '|' . $r->backup_id)
+            ->unique(fn ($r) => $r->backup_server_id.'|'.$r->backup_id)
             ->values();
     }
 
@@ -209,7 +210,7 @@ class BackupHealthService
      * Median gap (in seconds) between successive backups, or null when there
      * is too little history to guess a schedule.
      *
-     * @param Collection<int, \DateTimeInterface|int> $endTimes ordered oldest first
+     * @param  Collection<int, \DateTimeInterface|int>  $endTimes  ordered oldest first
      */
     public function expectedInterval(Collection $endTimes): ?int
     {

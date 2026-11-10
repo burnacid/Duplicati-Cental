@@ -12,6 +12,7 @@ use Livewire\Component;
 class Index extends Component
 {
     public ?string $deleteId = null;
+
     public ?string $regenerateId = null;
 
     public function render()
@@ -58,7 +59,7 @@ class Index extends Component
         $this->authorize('update', $server);
         $server->update(['muted_until' => Snooze::until($duration)]);
 
-        session()->flash('message', "Alerts for {$server->name} snoozed " . Snooze::label($server->muted_until) . '.');
+        session()->flash('message', "Alerts for {$server->name} snoozed ".Snooze::label($server->muted_until).'.');
     }
 
     public function resumeServer(string $id): void

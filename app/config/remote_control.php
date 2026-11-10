@@ -15,4 +15,3 @@ return [
     'ws_port' => env('REMOTE_CONTROL_WS_PORT', 8090),
     'server_version' => env('REMOTE_CONTROL_SERVER_VERSION', '1.0.0'),
 ];
-

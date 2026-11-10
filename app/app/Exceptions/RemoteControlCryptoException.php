@@ -2,6 +2,4 @@
 
 namespace App\Exceptions;
 
-class RemoteControlCryptoException extends \RuntimeException
-{
-}
+class RemoteControlCryptoException extends \RuntimeException {}

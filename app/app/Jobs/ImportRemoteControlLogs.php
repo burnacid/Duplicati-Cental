@@ -13,17 +13,17 @@ use Illuminate\Support\Facades\Cache;
  * Imports the last N days of results from a connected instance.
  * Progress is kept in the cache under statusKey() so the UI can show it.
  */
-class ImportRemoteControlLogs implements ShouldQueue, ShouldBeUnique
+class ImportRemoteControlLogs implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
     public int $tries = 1;
+
     public int $timeout = 1800;
+
     public int $uniqueFor = 1800;
 
-    public function __construct(public string $registrationId, public int $days = 30)
-    {
-    }
+    public function __construct(public string $registrationId, public int $days = 30) {}
 
     public function uniqueId(): string
     {

@@ -24,13 +24,13 @@ class BackupResultFactory
     /**
      * Build (not save) a result.
      *
-     * @param array<string, mixed> $data   Duplicati result object
-     * @param array<string, mixed> $extra  backup-name, backup-id, machine-id, machine-name, ...
-     * @param array<int, mixed>    $logLines
+     * @param  array<string, mixed>  $data  Duplicati result object
+     * @param  array<string, mixed>  $extra  backup-name, backup-id, machine-id, machine-name, ...
+     * @param  array<int, mixed>  $logLines
      */
     public function make(BackupServer $server, array $data, array $extra, array $logLines = []): BackupResult
     {
-        $result = new BackupResult();
+        $result = new BackupResult;
         $result->backup_server_id = $server->id;
         $result->extra = $extra;
         $result->log_lines = $logLines;
