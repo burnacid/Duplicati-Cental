@@ -67,7 +67,7 @@ test('welcome envelope is sent in plaintext on connect', function () {
 
         $payload = json_decode($welcome['payload'], true);
         expect($payload)->toHaveKeys(['publicKeyHash', 'machineName', 'serverVersion', 'supportedProtocolVersions'])
-            ->and($payload['supportedProtocolVersions'])->toBe([1]);
+            ->and($payload['supportedProtocolVersions'])->toBe([1, 2]);
     } finally {
         $socket->close();
     }

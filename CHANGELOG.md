@@ -7,6 +7,9 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+### Fixed
+- Duplicati 2.4 instances did not come online in Remote Control. The server now supports protocol version 2, which 2.4 requires, including its end-to-end encrypted commands; 2.3 and older keep working on version 1.
+
 ## [0.2.0] - 2026-11-10
 
 ### Added

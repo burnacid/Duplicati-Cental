@@ -19,6 +19,12 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
     private const PHASE_WELCOME_SENT = 'welcome_sent';
     private const PHASE_AUTHENTICATED = 'authenticated';
 
+    /**
+     * Protocol 1: Duplicati up to 2.3. Protocol 2 (Duplicati 2.4+): command payloads are
+     * end-to-end encrypted and the client refuses servers that do not offer version 2.
+     */
+    private const SUPPORTED_PROTOCOL_VERSIONS = [1, 2];
+
     private SplObjectStorage $connections;
 
     /** @var array<string, ConnectionInterface> registrationId => ConnectionInterface */
@@ -52,6 +58,7 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
         $state->clientId = 'client';
         $state->registration = null;
         $state->clientPublicKeyPem = null;
+        $state->protocolVersion = 1;
 
         $this->connections[$conn] = $state;
 
@@ -61,7 +68,7 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
             'publicKeyHash' => $certificate['publicKeyHash'],
             'machineName' => (string) config('app.name'),
             'serverVersion' => (string) config('remote_control.server_version'),
-            'supportedProtocolVersions' => [1],
+            'supportedProtocolVersions' => self::SUPPORTED_PROTOCOL_VERSIONS,
         ]);
     }
 
@@ -120,7 +127,7 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
 
         $state->clientId = is_string($envelope['from'] ?? null) ? $envelope['from'] : $state->clientId;
 
-        if (($envelope['type'] ?? null) !== 'auth') {
+        if (! in_array($envelope['type'] ?? null, ['auth', 'authrunner'], true)) {
             $conn->close();
 
             return;
@@ -146,11 +153,13 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
 
         $state->registration = $registration;
         $state->clientPublicKeyPem = $clientPublicKey;
+        $protocolVersion = (int) ($payload['protocolVersion'] ?? 1);
+        $state->protocolVersion = in_array($protocolVersion, self::SUPPORTED_PROTOCOL_VERSIONS, true) ? $protocolVersion : 1;
         $state->phase = self::PHASE_AUTHENTICATED;
 
         $this->connectionsByRegistrationId[$registration->id] = $conn;
 
-        $this->sendEncrypted($conn, $state, 'auth', [
+        $this->sendEncrypted($conn, $state, (string) $envelope['type'], [
             'accepted' => true,
             'willReplaceToken' => false,
             'newToken' => null,
@@ -184,7 +193,7 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
         match ($envelope['type'] ?? null) {
             'ping' => $this->handlePing($conn, $state, $registration),
             'control' => $this->handleControlAck($envelope, $registration),
-            'command' => $this->handleCommandResponse($envelope),
+            'command' => $this->handleCommandResponse($envelope, $registration),
             default => Log::debug('remote-control: ignoring envelope type', ['type' => $envelope['type'] ?? null]),
         };
     }
@@ -206,7 +215,7 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
         }
     }
 
-    private function handleCommandResponse(array $envelope): void
+    private function handleCommandResponse(array $envelope, RemoteControlRegistration $registration): void
     {
         $messageId = $envelope['messageId'] ?? null;
         $commandId = is_string($messageId) ? ($this->pendingCommandsByMessageId[$messageId] ?? null) : null;
@@ -228,6 +237,27 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
         }
 
         $payload = $this->decodePayload($envelope);
+
+        // Protocol v2 replies are wrapped; a plain reply is v1 or a refusal (e.g. 426) from the client.
+        if ($this->cryptoService->isEncryptedCommandPayload($payload)) {
+            try {
+                $payload = $this->cryptoService->decryptCommandResponse($payload, $messageId);
+            } catch (RemoteControlCryptoException $e) {
+                Log::warning('remote-control: failed to decrypt command response', [
+                    'registration' => $registration->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $command->status = RemoteControlCommand::STATUS_COMPLETED;
+                $command->response_status_code = 502;
+                $command->error_message = 'Could not decrypt the response from the instance.';
+                $command->completed_at = now();
+                $command->save();
+
+                return;
+            }
+        }
+
         $bodyBase64 = $payload['body'] ?? null;
         $decodedBody = is_string($bodyBase64) && $bodyBase64 !== '' ? base64_decode($bodyBase64, true) : null;
 
@@ -256,12 +286,19 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
                 continue;
             }
 
-            $messageId = $this->sendEncrypted($conn, $state, 'command', [
+            $messageId = (string) Str::uuid();
+            $request = [
                 'method' => $command->method,
                 'path' => $command->path,
                 'body' => $command->request_body === null ? null : base64_encode($command->request_body),
                 'headers' => $command->request_headers,
-            ]);
+            ];
+
+            if ($state->protocolVersion >= 2) {
+                $request = $this->cryptoService->encryptCommandRequest($messageId, $request, $state->clientPublicKeyPem);
+            }
+
+            $this->sendEncrypted($conn, $state, 'command', $request, $messageId);
 
             $command->status = RemoteControlCommand::STATUS_SENT;
             $command->message_id = $messageId;
