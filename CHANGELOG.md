@@ -7,6 +7,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-10
+
 ### Added
 - Read-only REST API (`/api/v1/summary`, `/servers`, `/jobs`, `/results`, `/results/{id}`) with personal access tokens, created and revoked in Settings → API tokens.
 - Prometheus metrics at `/api/v1/metrics`: last success, status, overdue, duration, sizes, versions and free destination space per job.
@@ -109,7 +111,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 - Notification channel settings (SMTP passwords, webhook headers) are encrypted in the database.
 - The Docker build no longer includes local secrets, keys, logs or `.env` files.
 
-[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/burnacid/Duplicati-Cental/compare/v0.2.0...v0.2.1
