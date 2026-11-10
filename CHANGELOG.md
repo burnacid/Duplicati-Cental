@@ -7,6 +7,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-10
+
 ### Added
 - First admin for Docker installs via `ADMIN_EMAIL` / `ADMIN_PASSWORD` (or `ADMIN_PASSWORD_FILE`), created at start-up when no users exist, so nobody else can claim a fresh installation.
 - `php artisan user:create` and `php artisan user:reset-password` (optionally `--disable-2fa`) for creating accounts and recovering locked-out accounts.
@@ -64,5 +66,6 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 - Notification channel settings (SMTP passwords, webhook headers) are encrypted in the database.
 - The Docker build no longer includes local secrets, keys, logs or `.env` files.
 
-[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/burnacid/Duplicati-Cental/releases/tag/v0.1.0
