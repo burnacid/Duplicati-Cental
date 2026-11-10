@@ -41,6 +41,7 @@ class User extends Authenticatable implements HasPasskeys
         'two_factor_secret',
         'two_factor_recovery_codes',
         'two_factor_last_timestep',
+        'status_page_token',
     ];
 
     /**
@@ -64,6 +65,12 @@ class User extends Authenticatable implements HasPasskeys
     public function hasTwoFactorEnabled(): bool
     {
         return $this->two_factor_secret !== null && $this->two_factor_confirmed_at !== null;
+    }
+
+    /** The public status page is on while the user has a token for it. */
+    public function hasStatusPage(): bool
+    {
+        return filled($this->status_page_token);
     }
 
     /** True when the account has TOTP or at least one passkey. */

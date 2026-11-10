@@ -115,6 +115,37 @@
                             :placeholder="$learnedInterval ? 'Learned: ' . $learnedInterval : 'Learn automatically'"
                             description="Leave empty to learn the schedule from past runs. When set, the job is overdue one missed run (plus the grace period) after its last backup." />
 
+                <flux:separator variant="subtle" />
+
+                <div class="space-y-4">
+                    <div>
+                        <flux:heading size="sm">Alert rules</flux:heading>
+                        <flux:text size="sm">Sent to channels that receive warnings. Leave a field empty to turn that rule off.</flux:text>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <flux:input wire:model="alertSizeChangePercent" type="number" min="1" label="Source size changes by (%)" placeholder="e.g. 50" />
+                        <flux:input wire:model="alertDurationFactor" type="number" min="1.1" step="0.1" label="Takes longer than (× usual)" placeholder="e.g. 3" />
+                        <flux:input wire:model="alertUnchangedRuns" type="number" min="1" label="No files changed for (runs)" placeholder="e.g. 7" />
+                        <flux:input wire:model="alertQuotaFreePercent" type="number" min="1" max="99" label="Destination free below (%)" placeholder="e.g. 10" />
+                    </div>
+                </div>
+
+                <flux:separator variant="subtle" />
+
+                <flux:input wire:model="heartbeatUrl" type="url" label="Heartbeat URL"
+                            placeholder="https://status.example.com/api/push/…"
+                            description="Called (GET) after every successful backup, e.g. an Uptime Kuma push monitor or a Healthchecks.io check. Failed backups send nothing, so that service raises the alarm." />
+
+                <flux:separator variant="subtle" />
+
+                <div class="space-y-3">
+                    <flux:switch wire:model.live="onStatusPage" label="Show on the public status page"
+                                 description="Only the status and the time of the last backup are shown, never the server, sizes or logs." />
+                    @if($onStatusPage)
+                        <flux:input wire:model="statusPageName" label="Public name" :placeholder="$settingsBackupName" description="Leave empty to use the job name." />
+                    @endif
+                </div>
+
                 <div class="flex justify-end">
                     <flux:button type="submit" variant="primary">Save</flux:button>
                 </div>

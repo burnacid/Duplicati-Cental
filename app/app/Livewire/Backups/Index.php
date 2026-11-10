@@ -44,6 +44,21 @@ class Index extends Component
 
     public string $snoozeFor = '1d';
 
+    // Alert rules (empty = off)
+    public string $alertSizeChangePercent = '';
+
+    public string $alertDurationFactor = '';
+
+    public string $alertUnchangedRuns = '';
+
+    public string $alertQuotaFreePercent = '';
+
+    public string $heartbeatUrl = '';
+
+    public bool $onStatusPage = false;
+
+    public string $statusPageName = '';
+
     public function updatedSearchTerm(): void
     {
         $this->resetPage();
@@ -115,6 +130,13 @@ class Index extends Component
             : null;
         $this->mutedLabel = Snooze::label($setting?->muted_until);
         $this->snoozeFor = '1d';
+        $this->alertSizeChangePercent = (string) ($setting?->alert_size_change_percent ?? '');
+        $this->alertDurationFactor = (string) ($setting?->alert_duration_factor ?? '');
+        $this->alertUnchangedRuns = (string) ($setting?->alert_unchanged_runs ?? '');
+        $this->alertQuotaFreePercent = (string) ($setting?->alert_quota_free_percent ?? '');
+        $this->heartbeatUrl = (string) ($setting?->heartbeat_url ?? '');
+        $this->onStatusPage = $setting?->on_status_page ?? false;
+        $this->statusPageName = (string) ($setting?->status_page_name ?? '');
 
         Flux::modal('job-settings')->show();
     }
@@ -124,11 +146,35 @@ class Index extends Component
         $this->validate([
             'monitored' => 'boolean',
             'expectedIntervalHours' => 'nullable|integer|min:1|max:8760',
-        ], [], ['expectedIntervalHours' => 'expected interval']);
+            'alertSizeChangePercent' => 'nullable|integer|min:1|max:10000',
+            'alertDurationFactor' => 'nullable|numeric|min:1.1|max:100',
+            'alertUnchangedRuns' => 'nullable|integer|min:1|max:1000',
+            'alertQuotaFreePercent' => 'nullable|integer|min:1|max:99',
+            'heartbeatUrl' => 'nullable|url:http,https|max:2000',
+            'onStatusPage' => 'boolean',
+            'statusPageName' => 'nullable|string|max:100',
+        ], [], [
+            'expectedIntervalHours' => 'expected interval',
+            'alertSizeChangePercent' => 'size change',
+            'alertDurationFactor' => 'duration factor',
+            'alertUnchangedRuns' => 'unchanged runs',
+            'alertQuotaFreePercent' => 'free space',
+            'heartbeatUrl' => 'heartbeat URL',
+            'statusPageName' => 'public name',
+        ]);
+
+        $nullable = fn (string $value, string $cast) => $value === '' ? null : ($cast === 'float' ? (float) $value : (int) $value);
 
         $this->settingRecord()->fill([
             'monitored' => $this->monitored,
-            'expected_interval_hours' => $this->expectedIntervalHours === '' ? null : (int) $this->expectedIntervalHours,
+            'expected_interval_hours' => $nullable($this->expectedIntervalHours, 'int'),
+            'alert_size_change_percent' => $nullable($this->alertSizeChangePercent, 'int'),
+            'alert_duration_factor' => $nullable($this->alertDurationFactor, 'float'),
+            'alert_unchanged_runs' => $nullable($this->alertUnchangedRuns, 'int'),
+            'alert_quota_free_percent' => $nullable($this->alertQuotaFreePercent, 'int'),
+            'heartbeat_url' => trim($this->heartbeatUrl) === '' ? null : trim($this->heartbeatUrl),
+            'on_status_page' => $this->onStatusPage,
+            'status_page_name' => trim($this->statusPageName) === '' ? null : trim($this->statusPageName),
         ])->save();
 
         session()->flash('message', "Settings saved for \"{$this->settingsBackupName}\".");

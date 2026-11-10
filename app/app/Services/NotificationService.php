@@ -62,6 +62,37 @@ class NotificationService
      *
      * @param  array{server_name: string, backup_name: string, last_backup_at: ?CarbonInterface}  $job
      */
+    /**
+     * Alert rules that fired for a result (BackupAlertRuleService). Sent like a warning.
+     *
+     * @param  list<string>  $alerts
+     */
+    public function notifyAlerts(BackupResult $result, array $alerts): void
+    {
+        $user = $result->backupServer?->user;
+        if ($alerts === [] || ! $user || $result->backupServer->isJobMuted($result->backup_id)) {
+            return;
+        }
+
+        $subject = sprintf('[Alert] %s - %s', $result->backupServer->name, $result->backup_name);
+        $message = sprintf("Backup \"%s\" on %s:\n- %s", $result->backup_name, $result->backupServer->name, implode("\n- ", $alerts));
+        $context = [
+            'event' => 'backup_alert',
+            'status' => 'Warning',
+            'server' => $result->backupServer->name,
+            'backup' => $result->backup_name,
+            'alerts' => $alerts,
+            'end_time' => $result->EndTime?->toIso8601String(),
+            'url' => route('backup-detail', $result->id),
+        ];
+
+        $user->notificationChannels()
+            ->where('is_active', true)
+            ->get()
+            ->filter(fn (NotificationChannel $channel) => $channel->wantsStatus(BackupStatus::Warning))
+            ->each(fn (NotificationChannel $channel) => $this->deliver($channel, $message, $subject, $context));
+    }
+
     public function notifyOverdue(User $user, array $job): void
     {
         $subject = sprintf('[Overdue] %s - %s', $job['server_name'], $job['backup_name']);

@@ -151,3 +151,19 @@ test('another user\'s server cannot be snoozed', function () {
 
     expect($this->bobServer->fresh()->muted_until)->toBeNull();
 });
+
+test('an API token only sees its owner\'s data', function () {
+    $token = $this->alice->createToken('alice', ['read'])->plainTextToken;
+
+    $this->withToken($token)->getJson('/api/v1/results')->assertOk()->assertSee('AliceDocs')->assertDontSee('BobSecret');
+    $this->withToken($token)->getJson('/api/v1/jobs')->assertOk()->assertDontSee('Bob NAS');
+    $this->withToken($token)->get('/api/v1/metrics')->assertOk()->assertDontSee('Bob NAS');
+    $this->withToken($token)->getJson("/api/v1/results/{$this->bobResult->id}")->assertNotFound();
+});
+
+test('a status page only shows its owner\'s jobs', function () {
+    $this->bobServer->jobSettings()->create(['backup_id' => 'id-BobSecret', 'on_status_page' => true]);
+    $this->alice->forceFill(['status_page_token' => str_repeat('a', 48)])->save();
+
+    $this->get('/status/'.str_repeat('a', 48))->assertOk()->assertDontSee('BobSecret');
+});

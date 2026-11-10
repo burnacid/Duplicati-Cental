@@ -5,7 +5,9 @@ A self-hosted dashboard for your [Duplicati](https://www.duplicati.com/) backups
 - **Dashboard**: status tiles, a 30-day overview per server, the history of each job and a "Needs attention" list.
 - **Missed backups**: learns each job's schedule (or uses the interval you set) and alerts when a backup is overdue.
 - **Notifications**: email, Discord, Slack, Microsoft Teams, Telegram, ntfy, Pushover or any webhook. Choose a level per channel (every result, warnings, errors only), plus daily or weekly summaries.
+- **Alert rules per job**: unusual size changes, runs that take much longer than usual, no changed files for N runs, a destination that is almost full.
 - **Snooze**: mute alerts for a server or a single job, from 1 hour to "until I resume".
+- **Integrations**: read-only REST API with tokens, Prometheus metrics, heartbeat pings to Uptime Kuma or Healthchecks.io, and a public status page for the jobs you choose.
 - **Results and details**: filter results, read log lines and backend statistics, and see size trends per job.
 - **Remote control** (optional): connect instances to run a backup or repair from Central, follow progress live and import past results from the instance's own log. Works with Duplicati 2.3 and 2.4+.
 - **Security**: authenticator app (TOTP), passkeys, optional mandatory 2FA, sign-up closed after the first account.
@@ -170,6 +172,53 @@ Database changes are applied automatically on start. For production, pin a versi
 ## Health
 
 **Settings → Health** shows whether the scheduler, the queue worker and the remote-control server are running. It also shows whether the database schema is up to date, how much disk space is free and when Central was last backed up. If alerts stop arriving, check this page first.
+
+## Alerts, heartbeats and the status page
+
+Open **Backup Management → Settings** for a job:
+
+- **Alert rules**: alert when the source size changes by more than X %, when a run takes more than X times as long as usual (the median of the last 10 runs), when no files changed for N runs, or when the destination has less than X % free space. Each rule fires once when its limit is crossed, and goes to every channel that receives warnings.
+- **Heartbeat URL**: called with a GET after every successful backup, for example an [Uptime Kuma](https://github.com/louislam/uptime-kuma) push monitor or a [Healthchecks.io](https://healthchecks.io) check. Failed backups send nothing, so that service raises the alarm, even if Central itself is down.
+- **Show on the public status page**: with an optional public name.
+
+**Settings → Status page** turns on a public page at a secret link (`/status/<token>`). It shows only the jobs you picked, with their status and the time of the last backup. Server names, sizes, paths and logs are never shown. Use **New link** to replace the link if it was shared too widely.
+
+## API and Prometheus
+
+Create a token in **Settings → API tokens** and send it as a bearer token. All endpoints are read-only and only return your own data.
+
+| Endpoint | Returns |
+|---|---|
+| `GET /api/v1/summary` | Counts of servers, jobs, healthy, warning, failed, overdue and snoozed jobs |
+| `GET /api/v1/servers` | Your backup servers with their last report time |
+| `GET /api/v1/jobs` | Every job with its status, last backup, overdue and snooze flags |
+| `GET /api/v1/results` | Results, newest first. Filters: `server`, `backup`, `status` (`Success`, `Warning`, `Error`, `Fatal`, `Failed`), `operation`, `since`, `until`, `per_page` (max 100) |
+| `GET /api/v1/results/{id}` | One result including log lines and all backend statistics |
+| `GET /api/v1/metrics` | Prometheus metrics |
+
+```bash
+curl -H "Authorization: Bearer <token>" https://central.example.com/api/v1/jobs
+```
+
+Prometheus scrape configuration:
+
+```yaml
+scrape_configs:
+  - job_name: duplicati-central
+    scheme: https
+    metrics_path: /api/v1/metrics
+    authorization:
+      credentials: <token>
+    static_configs:
+      - targets: ["central.example.com"]
+```
+
+The metrics are gauges per job (labels `server`, `job`, `backup_id`):
+- `duplicati_central_job_last_success_timestamp_seconds`, `duplicati_central_job_last_run_timestamp_seconds`
+- `duplicati_central_job_status` (0 success, 1 warning, 2 error, 3 unknown), `duplicati_central_job_failing`, `duplicati_central_job_overdue`, `duplicati_central_job_snoozed`
+- `duplicati_central_job_last_duration_seconds`, `duplicati_central_job_source_size_bytes`, `duplicati_central_job_backup_size_bytes`, `duplicati_central_job_backup_versions`, `duplicati_central_job_destination_free_bytes`
+
+Example alert: `time() - duplicati_central_job_last_success_timestamp_seconds > 2 * 86400`. Requests are limited to 120 per minute per token.
 
 ## Command line
 

@@ -5,17 +5,9 @@ When an item ships it is removed here and recorded in [CHANGELOG.md](CHANGELOG.m
 
 Current version: see [VERSION](VERSION).
 
-## v0.4 – Foundations
-
-Done, waiting for release (see Unreleased in the changelog).
-
 ## v0.5 – Monitoring & integrations
 
-- **REST API** – read-only, versioned under `/api/v1`, with personal access tokens: servers, jobs, latest results and health.
-- **Prometheus metrics** – token-protected `/metrics` with last success time, status, duration and size per job.
-- **Smarter alerts per job** – backup size changes by more than X %, a run takes much longer than usual, no files changed for N runs, destination quota running low.
-- **Public status page** – optional, read-only, only the jobs you pick, without names or paths.
-- **Heartbeat push** – ping an external URL (Uptime Kuma, Healthchecks.io) after each successful backup.
+Done, waiting for release (see Unreleased in the changelog).
 
 ## v0.6 – Remote control depth
 

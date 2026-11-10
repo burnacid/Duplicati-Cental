@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\RemoteControlClaimController;
+use App\Http\Controllers\StatusPageController;
 use App\Livewire\BackupDetail;
 use App\Livewire\BackupResults;
 use App\Livewire\Backups\Index as BackupsIndex;
@@ -10,7 +11,9 @@ use App\Livewire\BackupServers\Index as BackupServersIndex;
 use App\Livewire\NotificationChannels\Index as NotificationChannelsIndex;
 use App\Livewire\RemoteControl\Index as RemoteControlIndex;
 use App\Livewire\RemoteControl\Show as RemoteControlShow;
+use App\Livewire\Settings\ApiTokens as SettingsApiTokens;
 use App\Livewire\Settings\Health as SettingsHealth;
+use App\Livewire\Settings\StatusPage as SettingsStatusPage;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -42,6 +45,11 @@ Route::middleware(['auth', 'two-factor.required'])->group(function () {
     });
     Route::get('/notification-channels', NotificationChannelsIndex::class)->name('notification-channels.index');
     Route::get('/settings/health', SettingsHealth::class)->name('settings.health');
+    Route::get('/settings/status-page', SettingsStatusPage::class)->name('settings.status-page');
+    Route::get('/settings/api-tokens', SettingsApiTokens::class)->middleware('password.confirm')->name('settings.api-tokens');
 });
+
+// Public status page (no login; the token in the URL is the secret).
+Route::get('/status/{token}', [StatusPageController::class, 'show'])->middleware('throttle:status-page')->name('status-page');
 
 require __DIR__.'/auth.php';

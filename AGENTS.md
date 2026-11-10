@@ -24,7 +24,9 @@ Duplicati instance
   └─ POST /api/backup-servers/{serverId}/{apiKey}/backup-result
         └─ BackupController::storeBackupResult (validates first, skips List* operations)
               └─ creates BackupResult (scoped to BackupServer)
-                    └─ queues SendBackupResultNotification → NotificationService::notifyBackupResult
+                    ├─ queues SendBackupResultNotification → NotificationService::notifyBackupResult
+                    │     + BackupAlertRuleService::check → NotificationService::notifyAlerts (per-job rules)
+                    └─ queues PingHeartbeat (successful backups of jobs with a heartbeat_url)
 Scheduler (routes/console.php)
   ├─ backups:check-overdue (hourly) → NotificationService::notifyOverdue (skips snoozed jobs)
   ├─ backups:send-digest daily|weekly (BACKUP_DIGEST_TIME) → DigestService::build → NotificationService::notifyDigest
@@ -34,7 +36,7 @@ Scheduler (routes/console.php)
 ```
 
 - **Web routes** (`routes/web.php`): all UI pages are full Livewire components (`App\Livewire\*`), including `NotificationChannels\Index`.
-- **API routes** (`routes/api.php`): unauthenticated; backup results authenticate via the `{apiKey}` path segment. Remote-control machines are claimed only through the authenticated web flow (`RemoteControlClaimController`).
+- **API routes** (`routes/api.php`): backup results authenticate via the `{apiKey}` path segment. The read-only REST API and Prometheus metrics live under `/api/v1` (`Api\V1\ReadApiController`, `MetricsController` → `App\Services\MetricsService`) behind `auth:sanctum`, `abilities:read` and `throttle:api`. Tokens are created in Settings → API tokens (`App\Livewire\Settings\ApiTokens`, behind `password.confirm`). `config/sanctum.php` has `guard => []`, so the session never authenticates the API; API errors are always JSON (`bootstrap/app.php`). Keep new endpoints read-only unless a new ability is added, and scope them to `$request->user()`. Remote-control machines are claimed only through the authenticated web flow (`RemoteControlClaimController`).
 - **Remote control switch**: `REMOTE_CONTROL_ENABLED` (`config('remote_control.enabled')`, default true). Remote-control routes use the `remote-control` middleware (404 when off); shared screens check the config before showing remote-control UI. Guard any new remote-control feature the same way.
 - **Remote-control protocol**: the welcome offers versions 1 and 2; the client's `protocolVersion` from auth is kept per connection. Duplicati 2.4+ (v2) refuses servers without version 2 and requires command payloads as `{"v":2,"jwe":...}` (RSA-OAEP-256 + A256GCM, gzip above 2 KiB, `zip:"gzip"`), with plaintext `{messageId, replyKey, request}`; replies are encrypted to `replyKey` (our own server key). See `RemoteControlCryptoService::encryptCommandRequest()` / `decryptCommandResponse()`.
 - **History import**: `RemoteLogImportService` pages through `GET /api/v1/backup/{id}/log` on a connected instance and stores `Result` entries as `BackupResult` (`source = 'remote-log'`, no notifications). Duplicates are matched on server + job (`DB-<id>`) + `BeginTime` (±2 s). Started from the machine page (`ImportRemoteControlLogs` job, status in cache) or `php artisan remote-control:import-logs {registration?} --days=30`. Both reports and imports go through `BackupResultFactory`.
@@ -49,7 +51,7 @@ Scheduler (routes/console.php)
 | `BackupServer` | UUID | `api_key` (64-char random) auto-set in `boot()`, hidden from serialisation. `scopeOwnedBy()` |
 | `BackupResult` | Auto-int | CamelCase column names mirror Duplicati's JSON schema. `scopeForUser()`, `status` accessor |
 | `NotificationChannel` | Auto-int | `config` is `encrypted:array`; `notify_on` (all/warning/error), `notify_overdue`, `digest` (off/daily/weekly); `type` validated against `config/notification_channels.php` |
-| `BackupJobSetting` | Auto-int | Per job (`backup_server_id` + `backup_id`): `expected_interval_hours` (manual overdue interval), `monitored`, `muted_until`. Reach it through an owned `BackupServer` (`jobSettings()`). |
+| `BackupJobSetting` | Auto-int | Per job (`backup_server_id` + `backup_id`): `expected_interval_hours` (manual overdue interval), `monitored`, `muted_until`, alert rules (`alert_*`, null = off), `heartbeat_url` (encrypted), `on_status_page` / `status_page_name`. Reach it through an owned `BackupServer` (`jobSettings()`). |
 
 - **Snooze**: `BackupServer.muted_until` and `BackupJobSetting.muted_until` ("until I resume" = +100 years). Check with `BackupServer::isJobMuted($backupId)`; durations and labels in `App\Support\Snooze`. Snoozed jobs get no result, overdue or badge alerts and are listed separately in the digest.
 
@@ -61,6 +63,8 @@ Scheduler (routes/console.php)
 - **PWA**: `public/site.webmanifest`, `public/sw.js` (caches only `/build/*` and icons; pages are never cached), `public/offline.html`, `resources/js/pwa.js` (install button store `$store.pwa`, `window.dcSetFailingJobs()` for the tab title / app badge, fed by `App\Livewire\FailingJobsBadge` in the sidebar). Bump `CACHE` in `sw.js` when the precached files change.
 - **Size chart**: `<x-size-trend-chart :points="..." />` renders inline SVG from `App\Support\SizeTrendChart` (no JS chart library).
 - **Health** (Settings → Health, `App\Livewire\Settings\Health`): `App\Services\SystemHealthService::checks()` returns `{key, label, status (ok|warning|error|off), summary, detail}`. Background processes report with `beat()` (cached timestamps); the websocket server beats every 30 s. It shows installation status only, never user data, so every signed-in user may see it. Add a check there for any new background process.
+- **Alert rules** (`App\Services\BackupAlertRuleService`): checked for Backup runs that did not fail; each rule fires only on the run that crosses its limit (no repeats while the condition lasts). Alerts go to channels that want warnings and respect snooze.
+- **Public status page**: `/status/{token}` (`StatusPageController`, `throttle:status-page`, no login) with data from `App\Services\StatusPageService`, which exposes only public name, state and backup times. Never add server names, sizes, paths, logs or links to it. `User.status_page_token` (hidden) turns it on; Settings → Status page (`App\Livewire\Settings\StatusPage`) manages it.
 - **Self-backup**: `App\Services\CentralBackupService` (`app:backup` / `app:restore`) zips a `VACUUM INTO` snapshot of SQLite, `APP_KEY` and `storage/app/remote-control/*.pem` with a `manifest.json` (format 1, optional AES-256 password) into `config('backups.central.path')` (`storage/backups`). Restore checks everything before writing and keeps the old database as `*.before-restore-*`. Include any new secret file in storage there.
 
 ## Adding a New Notification Channel Type

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\PingHeartbeat;
 use App\Jobs\SendBackupResultNotification;
 use App\Models\BackupServer;
 use App\Services\BackupResultFactory;
@@ -61,6 +62,10 @@ class BackupController extends Controller
         $backupResult->save();
 
         SendBackupResultNotification::dispatch($backupResult->id);
+        if (PingHeartbeat::shouldPing($backupResult)
+            && $server->jobSettings()->where('backup_id', $backupResult->backup_id)->whereNotNull('heartbeat_url')->exists()) {
+            PingHeartbeat::dispatch($backupResult->id);
+        }
 
         return response()->json([
             'message' => ucfirst($operation).' result received successfully',

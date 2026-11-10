@@ -12,8 +12,11 @@ use App\Services\BackupHealthService;
 use App\Services\NotificationService;
 use App\Services\RemoteControlConnectionHandler;
 use Illuminate\Auth\Middleware\RequirePassword;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -39,6 +42,12 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(NotificationChannel::class, NotificationChannelPolicy::class);
         Gate::policy(BackupServer::class, BackupServerPolicy::class);
+
+        // REST API: per token owner, or per IP for unauthenticated requests.
+        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
+
+        // Public status pages.
+        RateLimiter::for('status-page', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
 
         if ($proxies = config('app.trusted_proxies')) {
             TrustProxies::at($proxies === '*' ? '*' : array_map('trim', explode(',', $proxies)));

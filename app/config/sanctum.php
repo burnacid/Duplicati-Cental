@@ -37,7 +37,8 @@ return [
     |
     */
 
-    'guard' => ['web'],
+    // Empty: the API only accepts personal access tokens, never the web session.
+    'guard' => [],
 
     /*
     |--------------------------------------------------------------------------

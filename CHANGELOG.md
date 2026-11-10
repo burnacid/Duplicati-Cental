@@ -7,6 +7,16 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+### Added
+- Read-only REST API (`/api/v1/summary`, `/servers`, `/jobs`, `/results`, `/results/{id}`) with personal access tokens, created and revoked in Settings → API tokens.
+- Prometheus metrics at `/api/v1/metrics`: last success, status, overdue, duration, sizes, versions and free destination space per job.
+- Alert rules per job (Backup Management → Settings): source size changes by more than X %, a run takes X times longer than usual, no files changed for N runs, destination free space below X %.
+- Heartbeat URL per job: called after every successful backup, for Uptime Kuma push monitors, Healthchecks.io and similar services.
+- Public status page (Settings → Status page) at a secret link, showing only the jobs you choose, without server names, sizes or logs.
+
+### Security
+- The API only accepts tokens, never the browser session.
+
 ## [0.4.0] - 2026-11-10
 
 ### Added
