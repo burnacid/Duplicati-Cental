@@ -6,6 +6,10 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('backups:check-overdue')->hourly()->withoutOverlapping();
 
+// Summaries for channels that opted in (BACKUP_DIGEST_TIME, app timezone).
+Schedule::command('backups:send-digest daily')->dailyAt(config('backups.digest_time'))->withoutOverlapping();
+Schedule::command('backups:send-digest weekly')->weeklyOn(1, config('backups.digest_time'))->withoutOverlapping();
+
 // Retention: keep the database from growing forever.
 Schedule::call(function () {
     $days = (int) config('backups.retention_days');

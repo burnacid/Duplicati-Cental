@@ -32,9 +32,7 @@
                                 {{ $job['server_name'] }} - {{ $job['backup_name'] }}
                             </a>
                             <span class="flex items-center gap-2 text-sm text-zinc-500">
-                                @if($job['is_overdue'])
-                                    <flux:badge size="sm" color="zinc">Overdue</flux:badge>
-                                @endif
+                                <x-job-flags :job="$job" />
                                 <x-backup-status-badge :status="$job['last_status']" />
                                 last backup {{ $job['last_backup_at']?->diffForHumans() ?? 'never' }}
                             </span>
@@ -96,9 +94,7 @@
                                             {{ $job['backup_name'] }}
                                         </a>
                                         <div class="flex items-center gap-2 shrink-0">
-                                            @if($job['is_overdue'])
-                                                <flux:badge size="sm" color="zinc">Overdue</flux:badge>
-                                            @endif
+                                            <x-job-flags :job="$job" />
                                             @if($connected)
                                                 <flux:button size="xs" icon="play" wire:click="runNow({{ \Illuminate\Support\Js::from($server->id) }}, {{ \Illuminate\Support\Js::from($job['backup_id']) }})" wire:confirm="Start {{ $job['backup_name'] }} now?">Run</flux:button>
                                             @endif

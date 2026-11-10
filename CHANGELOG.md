@@ -9,6 +9,12 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ### Added
 - Duplicati Central can be installed as an app (PWA) on desktop and mobile. It shows an offline page when the server cannot be reached; backup data is never cached on the device. Installing needs HTTPS.
+- "Install app" in the sidebar when the browser supports installing (with Add to Home Screen steps on iPhone and iPad). The browser tab and the installed app icon show how many jobs need attention.
+- Daily or weekly summary per notification channel: runs, failures, overdue and snoozed jobs, and total backup size. Sent at `BACKUP_DIGEST_TIME` (default 08:00; weekly on Mondays).
+- Snooze alerts for a server (Backup Servers page) or a single job (Backup Management → Settings) for 1 hour up to "until I resume". No result or overdue alerts are sent while snoozed.
+- Job settings on Backup Management: set the expected backup interval by hand, or turn off missed-backup checks for jobs that run by hand.
+- Size trend chart on Backup Results when one job is selected: source and backup size over the last 30, 90 or 365 days.
+- New notification channel types: Slack, Microsoft Teams (Workflows webhook), Telegram, ntfy and Pushover.
 
 ### Changed
 - New logo and favicons. The logo switches to light colours in dark mode.

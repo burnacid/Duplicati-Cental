@@ -17,6 +17,10 @@ class Index extends Component
     public bool $is_active = true;
     public string $notify_on = NotificationChannel::NOTIFY_WARNING;
     public bool $notify_overdue = true;
+    public string $digest = NotificationChannel::DIGEST_OFF;
+
+    /** Config keys holding secrets: never sent back to the browser, kept when left empty on edit. */
+    private const SECRET_KEYS = ['password', 'token', 'bot_token', 'app_token'];
 
     /** Type-specific settings, see rules() for the keys per type. */
     public array $config = [];
@@ -48,10 +52,13 @@ class Index extends Component
         $this->is_active = $channel->is_active;
         $this->notify_on = $channel->notify_on ?? NotificationChannel::NOTIFY_WARNING;
         $this->notify_overdue = (bool) $channel->notify_overdue;
+        $this->digest = $channel->digest ?? NotificationChannel::DIGEST_OFF;
         $this->config = array_merge($this->defaultConfig(), $channel->config ?? []);
 
-        // Never send the stored password back to the browser.
-        $this->config['password'] = '';
+        // Never send stored secrets back to the browser.
+        foreach (self::SECRET_KEYS as $key) {
+            $this->config[$key] = '';
+        }
         $this->config['headers'] = isset($channel->config['headers']) && is_array($channel->config['headers'])
             ? json_encode($channel->config['headers'], JSON_PRETTY_PRINT)
             : '';
@@ -69,9 +76,13 @@ class Index extends Component
             $channel = $this->findOwned($this->editingId);
             $this->authorize('update', $channel);
 
-            // Keep the old SMTP password when the field was left empty.
-            if ($this->type === 'email' && ($config['password'] ?? '') === '') {
-                $config['password'] = $channel->config['password'] ?? null;
+            // Keep the old secret when the field was left empty and the type did not change.
+            if ($this->type === $channel->type) {
+                foreach (self::SECRET_KEYS as $key) {
+                    if (array_key_exists($key, $config) && ($config[$key] ?? '') === '') {
+                        $config[$key] = $channel->config[$key] ?? null;
+                    }
+                }
             }
 
             $channel->update($this->attributes($config));
@@ -131,7 +142,10 @@ class Index extends Component
             'is_active' => 'boolean',
             'notify_on' => ['required', Rule::in([NotificationChannel::NOTIFY_ALL, NotificationChannel::NOTIFY_WARNING, NotificationChannel::NOTIFY_ERROR])],
             'notify_overdue' => 'boolean',
+            'digest' => ['required', Rule::in(NotificationChannel::DIGESTS)],
         ];
+        // A secret may stay empty when editing (the stored one is kept).
+        $secret = $this->editingId ? 'nullable' : 'required';
 
         return $rules + match ($this->type) {
             'email' => [
@@ -153,6 +167,22 @@ class Index extends Component
                 'config.method' => 'required|in:GET,POST,PUT,PATCH',
                 'config.headers' => 'nullable|json',
             ],
+            'ntfy' => [
+                'config.server_url' => 'required|url:http,https|max:255',
+                'config.topic' => ['required', 'string', 'max:64', 'regex:/^[A-Za-z0-9_-]+$/'],
+                'config.token' => 'nullable|string|max:255',
+            ],
+            'telegram' => [
+                'config.bot_token' => [$secret, 'string', 'max:255', 'regex:/^\d+:[A-Za-z0-9_-]+$/'],
+                'config.chat_id' => ['required', 'string', 'max:64', 'regex:/^(-?\d+|@[A-Za-z0-9_]+)$/'],
+            ],
+            'pushover' => [
+                'config.app_token' => [$secret, 'string', 'max:64'],
+                'config.user_key' => 'required|string|max:64',
+            ],
+            'slack', 'teams' => [
+                'config.webhook_url' => 'required|url:https|max:1000',
+            ],
             default => [],
         };
     }
@@ -164,6 +194,11 @@ class Index extends Component
             'config.webhook_url' => 'webhook URL',
             'config.url' => 'URL',
             'config.headers' => 'headers',
+            'config.server_url' => 'server URL',
+            'config.bot_token' => 'bot token',
+            'config.chat_id' => 'chat ID',
+            'config.app_token' => 'application token',
+            'config.user_key' => 'user key',
         ];
     }
 
@@ -183,6 +218,7 @@ class Index extends Component
             'is_active' => $this->is_active,
             'notify_on' => $this->notify_on,
             'notify_overdue' => $this->notify_overdue,
+            'digest' => $this->digest,
             'config' => $config,
         ];
     }
@@ -194,6 +230,10 @@ class Index extends Component
             'email' => ['to', 'cc', 'bcc', 'from_email', 'hostname', 'port', 'security', 'username', 'password'],
             'discord' => ['webhook_url'],
             'webhook' => ['url', 'method', 'headers'],
+            'ntfy' => ['server_url', 'topic', 'token'],
+            'telegram' => ['bot_token', 'chat_id'],
+            'pushover' => ['app_token', 'user_key'],
+            'slack', 'teams' => ['webhook_url'],
             default => [],
         };
 
@@ -213,6 +253,9 @@ class Index extends Component
             'hostname' => '', 'port' => 587, 'security' => 'starttls', 'username' => '', 'password' => '',
             'webhook_url' => '',
             'url' => '', 'method' => 'POST', 'headers' => '',
+            'server_url' => 'https://ntfy.sh', 'topic' => '', 'token' => '',
+            'bot_token' => '', 'chat_id' => '',
+            'app_token' => '', 'user_key' => '',
         ];
     }
 
@@ -225,6 +268,7 @@ class Index extends Component
         $this->is_active = true;
         $this->notify_on = NotificationChannel::NOTIFY_WARNING;
         $this->notify_overdue = true;
+        $this->digest = NotificationChannel::DIGEST_OFF;
         $this->config = $this->defaultConfig();
     }
 

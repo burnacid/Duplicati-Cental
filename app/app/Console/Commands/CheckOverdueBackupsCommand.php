@@ -20,7 +20,7 @@ class CheckOverdueBackupsCommand extends Command
 
         User::query()->each(function (User $user) use ($health, $notifications, &$sent) {
             foreach ($health->jobs($user) as $job) {
-                if (! $job['is_overdue']) {
+                if (! $job['is_overdue'] || $job['is_muted']) {
                     continue;
                 }
 

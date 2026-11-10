@@ -19,4 +19,10 @@ return [
     */
     'retention_days' => (int) env('BACKUP_RETENTION_DAYS', 365),
     'remote_command_retention_hours' => (int) env('REMOTE_COMMAND_RETENTION_HOURS', 24),
+
+    /*
+    | Time of day (HH:MM, app timezone) for the daily summary, and for the
+    | weekly summary on Mondays. Channels choose which one they receive.
+    */
+    'digest_time' => env('BACKUP_DIGEST_TIME', '08:00'),
 ];

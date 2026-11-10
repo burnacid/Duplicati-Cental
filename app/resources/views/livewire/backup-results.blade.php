@@ -38,6 +38,34 @@
         </flux:select>
     </div>
 
+    @if($sizeTrend !== null)
+        <div class="bg-white dark:bg-zinc-900 shadow-sm rounded-lg p-6 mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                    <flux:heading size="lg">Size trend</flux:heading>
+                    @if(count($sizeTrend) > 1)
+                        @php($first = $sizeTrend[0])
+                        @php($last = end($sizeTrend))
+                        @php($change = $first['source'] > 0 ? ($last['source'] - $first['source']) / $first['source'] * 100 : null)
+                        <flux:subheading>
+                            Now {{ \App\Support\SizeTrendChart::formatBytes($last['source']) }} source,
+                            {{ \App\Support\SizeTrendChart::formatBytes($last['backup']) }} backup
+                            @if($change !== null)
+                                &middot; source {{ $change >= 0 ? '+' : '' }}{{ round($change, 1) }}% in this period
+                            @endif
+                        </flux:subheading>
+                    @endif
+                </div>
+                <flux:select wire:model.live="chartDays" aria-label="Chart period" class="max-w-40">
+                    @foreach(\App\Livewire\BackupResults::CHART_PERIODS as $days)
+                        <flux:select.option value="{{ $days }}">Last {{ $days }} days</flux:select.option>
+                    @endforeach
+                </flux:select>
+            </div>
+            <x-size-trend-chart :points="$sizeTrend" />
+        </div>
+    @endif
+
     <div class="bg-white dark:bg-zinc-900 overflow-hidden shadow-sm rounded-lg p-6">
         <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">

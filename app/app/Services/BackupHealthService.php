@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\BackupStatus;
+use App\Models\BackupJobSetting;
 use App\Models\BackupResult;
 use App\Models\BackupServer;
 use App\Models\User;
@@ -34,7 +35,8 @@ class BackupHealthService
      * @return Collection<int, array{
      *     server_id: string, server_name: string, backup_id: string, backup_name: string,
      *     last_result: BackupResult, last_status: BackupStatus, last_backup_at: ?Carbon,
-     *     expected_interval: ?int, is_overdue: bool,
+     *     expected_interval: ?int, learned_interval: ?int, interval_source: string, is_overdue: bool,
+     *     monitored: bool, muted_until: ?Carbon, is_muted: bool,
      *     recent: list<array{id: int, status: BackupStatus, title: string, url: string}>
      * }>
      */
@@ -68,7 +70,7 @@ class BackupHealthService
 
     private function build(string $userId): array
     {
-        $servers = BackupServer::ownedBy($userId)->get(['id', 'name'])->keyBy('id');
+        $servers = BackupServer::ownedBy($userId)->get(['id', 'name', 'muted_until'])->keyBy('id');
         if ($servers->isEmpty()) {
             return ['jobs' => collect(), 'daily' => []];
         }
@@ -77,6 +79,10 @@ class BackupHealthService
         $timezone = new DateTimeZone(config('app.timezone'));
         $utc = new DateTimeZone('UTC');
         $detailUrl = route('backup-detail', ['id' => '__ID__']);
+        $settings = BackupJobSetting::query()
+            ->whereIn('backup_server_id', $serverIds)
+            ->get()
+            ->keyBy(fn (BackupJobSetting $s) => $s->backup_server_id . '|' . $s->backup_id);
 
         // Lightweight rows of the last HISTORY_DAYS days, oldest first.
         $rows = DB::table('backup_results')
@@ -105,25 +111,42 @@ class BackupHealthService
             }
         }
 
-        $jobs = $this->latestResults($serverIds)->map(function (BackupResult $last) use ($servers, $byJob, $detailUrl) {
-            $history = $byJob[$last->backup_server_id . '|' . $last->backup_id] ?? [];
+        $jobs = $this->latestResults($serverIds)->map(function (BackupResult $last) use ($servers, $byJob, $detailUrl, $settings) {
+            $key = $last->backup_server_id . '|' . $last->backup_id;
+            $history = $byJob[$key] ?? [];
+            $setting = $settings[$key] ?? null;
+            $server = $servers[$last->backup_server_id] ?? null;
             $backupTimes = array_column(array_filter($history, fn ($r) => $r['operation'] === 'Backup'), 'timestamp');
 
             $lastBackupAt = $backupTimes !== []
                 ? Carbon::createFromTimestamp(end($backupTimes))->setTimezone(config('app.timezone'))
                 : ($last->MainOperation === 'Backup' ? $last->EndTime : null);
-            $interval = $this->expectedInterval(collect($backupTimes));
+            $learned = $this->expectedInterval(collect($backupTimes));
+            $manual = $setting?->expected_interval_hours ? $setting->expected_interval_hours * 3600 : null;
+            $monitored = $setting?->monitored ?? true;
+            // Snoozed until the later of the server snooze and the job snooze.
+            $mutedUntil = collect([
+                $server?->isMuted() ? $server->muted_until : null,
+                $setting?->isMuted() ? $setting->muted_until : null,
+            ])->filter()->sortDesc()->first();
 
             return [
                 'server_id' => $last->backup_server_id,
-                'server_name' => $servers[$last->backup_server_id]->name ?? 'Unknown',
+                'server_name' => $server->name ?? 'Unknown',
                 'backup_id' => $last->backup_id,
                 'backup_name' => $last->backup_name,
                 'last_result' => $last,
                 'last_status' => $last->status,
                 'last_backup_at' => $lastBackupAt,
-                'expected_interval' => $interval,
-                'is_overdue' => $this->isOverdue($lastBackupAt, $interval),
+                'expected_interval' => $manual ?? $learned,
+                'learned_interval' => $learned,
+                'interval_source' => $manual ? 'manual' : ($learned ? 'learned' : 'fallback'),
+                'is_overdue' => $monitored && ($manual
+                    ? $this->isOverdueManual($lastBackupAt, $manual)
+                    : $this->isOverdue($lastBackupAt, $learned)),
+                'monitored' => $monitored,
+                'muted_until' => $mutedUntil,
+                'is_muted' => $mutedUntil !== null,
                 'recent' => array_map(fn ($r) => [
                     'id' => $r['id'],
                     'status' => $r['status'],
@@ -224,5 +247,20 @@ class BackupHealthService
             : (int) config('backups.overdue_fallback_hours', 168) * 3600;
 
         return $lastBackupAt->diffInSeconds(now(), true) > $allowed;
+    }
+
+    /**
+     * With a schedule set by hand the interval is known, so one missed run
+     * (plus the grace period) is enough.
+     */
+    public function isOverdueManual(?Carbon $lastBackupAt, int $interval): bool
+    {
+        if ($lastBackupAt === null) {
+            return false;
+        }
+
+        $grace = (int) config('backups.overdue_grace_minutes', 60) * 60;
+
+        return $lastBackupAt->diffInSeconds(now(), true) > $interval + $grace;
     }
 }

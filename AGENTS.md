@@ -26,7 +26,8 @@ Duplicati instance
               └─ creates BackupResult (scoped to BackupServer)
                     └─ queues SendBackupResultNotification → NotificationService::notifyBackupResult
 Scheduler (routes/console.php)
-  ├─ backups:check-overdue (hourly) → NotificationService::notifyOverdue
+  ├─ backups:check-overdue (hourly) → NotificationService::notifyOverdue (skips snoozed jobs)
+  ├─ backups:send-digest daily|weekly (BACKUP_DIGEST_TIME) → DigestService::build → NotificationService::notifyDigest
   └─ daily pruning (retention settings in config/backups.php)
 ```
 
@@ -45,13 +46,18 @@ Scheduler (routes/console.php)
 | `User` | UUID (`HasUuids`) | Has many `NotificationChannel`. `User::registrationOpen()` gates sign-up (`REGISTRATION_ENABLED`; the first account is always allowed). |
 | `BackupServer` | UUID | `api_key` (64-char random) auto-set in `boot()`, hidden from serialisation. `scopeOwnedBy()` |
 | `BackupResult` | Auto-int | CamelCase column names mirror Duplicati's JSON schema. `scopeForUser()`, `status` accessor |
-| `NotificationChannel` | Auto-int | `config` is `encrypted:array`; `notify_on` (all/warning/error), `notify_overdue`; `type` validated against `config/notification_channels.php` |
+| `NotificationChannel` | Auto-int | `config` is `encrypted:array`; `notify_on` (all/warning/error), `notify_overdue`, `digest` (off/daily/weekly); `type` validated against `config/notification_channels.php` |
+| `BackupJobSetting` | Auto-int | Per job (`backup_server_id` + `backup_id`): `expected_interval_hours` (manual overdue interval), `monitored`, `muted_until`. Reach it through an owned `BackupServer` (`jobSettings()`). |
+
+- **Snooze**: `BackupServer.muted_until` and `BackupJobSetting.muted_until` ("until I resume" = +100 years). Check with `BackupServer::isJobMuted($backupId)`; durations and labels in `App\Support\Snooze`. Snoozed jobs get no result, overdue or badge alerts and are listed separately in the digest.
 
 - **Always scope queries to the current user**: `BackupServer::ownedBy($user)`, `BackupResult::forUser($user)`, `auth()->user()->notificationChannels()`.
 - `BackupResult.backup_name` / `backup_id` are extracted from `extra['backup-name']` / `extra['backup-id']` in `boot()`.
 - `EndTime` / `BeginTime` are stored as naive UTC strings via the `App\Casts\UtcDateTime` cast and returned in `config('app.timezone')`. Raw SQL on these columns compares UTC values.
 - **Status colours**: use `App\Enums\BackupStatus` (`fromResult()`, `worstOf()`, `color()`, `fluxColor()`, `isFailure()`); `Error` and `Fatal` are both failures. Blade: `<x-backup-status-badge :status="..." />` and `<x-status-bar :items="..." />`.
-- Dashboard data (per-job history, day statuses, overdue detection) comes from `App\Services\BackupHealthService`.
+- Dashboard data (per-job history, day statuses, overdue detection) comes from `App\Services\BackupHealthService`. Each job also carries `monitored`, `is_muted`, `muted_until` and `interval_source` (manual/learned/fallback); a manual interval is overdue after one missed run plus the grace period. Show the flags with `<x-job-flags :job="$job" />`.
+- **PWA**: `public/site.webmanifest`, `public/sw.js` (caches only `/build/*` and icons; pages are never cached), `public/offline.html`, `resources/js/pwa.js` (install button store `$store.pwa`, `window.dcSetFailingJobs()` for the tab title / app badge, fed by `App\Livewire\FailingJobsBadge` in the sidebar). Bump `CACHE` in `sw.js` when the precached files change.
+- **Size chart**: `<x-size-trend-chart :points="..." />` renders inline SVG from `App\Support\SizeTrendChart` (no JS chart library).
 
 ## Adding a New Notification Channel Type
 1. `config/notification_channels.php` – add `'type_key' => 'Display Name'` to `available_types`.

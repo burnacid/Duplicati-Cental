@@ -32,6 +32,15 @@
 
             <flux:spacer />
 
+            <livewire:failing-jobs-badge />
+
+            {{-- Shown only when the browser can install the app (see resources/js/pwa.js). --}}
+            <div x-data x-cloak x-show="$store.pwa?.canInstall">
+                <flux:navlist variant="outline">
+                    <flux:navlist.item icon="arrow-down-tray" href="#" x-on:click.prevent="$store.pwa.install()">{{ __('Install app') }}</flux:navlist.item>
+                </flux:navlist>
+            </div>
+
             <a href="https://github.com/burnacid/Duplicati-Cental/releases" target="_blank" rel="noopener"
                class="px-3 text-xs text-zinc-500 hover:underline dark:text-zinc-400" title="Release notes">
                 Duplicati Central v{{ config('app.version') }}
@@ -134,6 +143,17 @@
         </flux:header>
 
         {{ $slot }}
+
+        <flux:modal name="ios-install" class="max-w-sm">
+            <div class="space-y-4">
+                <flux:heading size="lg">{{ __('Install on iPhone or iPad') }}</flux:heading>
+                <ol class="list-decimal space-y-2 ps-5 text-sm text-zinc-600 dark:text-zinc-300">
+                    <li>{{ __('Open this page in Safari.') }}</li>
+                    <li>{{ __('Tap the Share button') }} <flux:icon.arrow-up-on-square variant="micro" class="inline" />.</li>
+                    <li>{{ __('Choose "Add to Home Screen" and tap Add.') }}</li>
+                </ol>
+            </div>
+        </flux:modal>
 
         @fluxScripts
 

@@ -33,6 +33,7 @@
                         <p class="text-sm text-zinc-500">
                             {{ match($channel->notify_on) { 'all' => 'Every result', 'error' => 'Errors only', default => 'Warnings and errors' } }}
                             @if($channel->notify_overdue) &middot; overdue backups @endif
+                            @if(in_array($channel->digest, ['daily', 'weekly'], true)) &middot; {{ $channel->digest }} summary @endif
                         </p>
                     </div>
                     <div class="flex items-center gap-1">
@@ -65,6 +66,13 @@
             </flux:select>
 
             <flux:checkbox wire:model="notify_overdue" label="Alert when a backup stops reporting (overdue)" />
+
+            <flux:select wire:model="digest" label="Summary" description="An overview of all jobs: runs, failures, overdue and snoozed jobs. Sent at {{ config('backups.digest_time') }}; weekly on Mondays.">
+                <flux:select.option value="off">No summary</flux:select.option>
+                <flux:select.option value="daily">Daily summary</flux:select.option>
+                <flux:select.option value="weekly">Weekly summary</flux:select.option>
+            </flux:select>
+
             <flux:checkbox wire:model="is_active" label="Active" />
 
             @if($type === 'email')
@@ -95,6 +103,28 @@
                 </details>
             @elseif($type === 'discord')
                 <flux:input wire:model="config.webhook_url" label="Discord webhook URL" placeholder="https://discord.com/api/webhooks/..." />
+            @elseif($type === 'slack')
+                <flux:input wire:model="config.webhook_url" label="Slack webhook URL" placeholder="https://hooks.slack.com/services/..."
+                            description="Create an incoming webhook in your Slack app settings." />
+            @elseif($type === 'teams')
+                <flux:input wire:model="config.webhook_url" label="Teams workflow URL" placeholder="https://...logic.azure.com/workflows/..."
+                            description="In Teams, add the workflow &quot;Post to a channel when a webhook request is received&quot; and paste its URL." />
+            @elseif($type === 'telegram')
+                <flux:input wire:model="config.bot_token" type="password" label="Bot token" autocomplete="off" placeholder="{{ $editingId ? 'Leave empty to keep current' : '123456789:AA...' }}"
+                            description="Create a bot with @BotFather." />
+                <flux:input wire:model="config.chat_id" label="Chat ID" placeholder="-1001234567890 or @channelname"
+                            description="The user, group or channel the bot posts to. Send the bot a message first." />
+            @elseif($type === 'ntfy')
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <flux:input wire:model="config.server_url" label="Server" placeholder="https://ntfy.sh" />
+                    <flux:input wire:model="config.topic" label="Topic" placeholder="my-backups" />
+                </div>
+                <flux:input wire:model="config.token" type="password" label="Access token (optional)" autocomplete="off" :placeholder="$editingId ? 'Leave empty to keep current' : 'tk_...'"
+                            description="Only needed for protected topics. On ntfy.sh, anyone who knows the topic name can read it." />
+            @elseif($type === 'pushover')
+                <flux:input wire:model="config.user_key" label="User or group key" />
+                <flux:input wire:model="config.app_token" type="password" label="Application token" autocomplete="off" :placeholder="$editingId ? 'Leave empty to keep current' : ''"
+                            description="Create an application on pushover.net to get a token." />
             @elseif($type === 'webhook')
                 <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                     <flux:select wire:model="config.method" label="Method">

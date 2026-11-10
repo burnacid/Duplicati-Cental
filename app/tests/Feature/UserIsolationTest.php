@@ -125,3 +125,27 @@ test('owner can delete a backup job history', function () {
 
     expect(BackupResult::where('backup_id', 'id-AliceDocs')->count())->toBe(0);
 });
+
+test('another user\'s job settings cannot be opened or changed', function () {
+    $this->actingAs($this->alice);
+
+    expect(fn () => Livewire::test(BackupsIndex::class)->call('openSettings', $this->bobServer->id, 'id-BobSecret'))
+        ->toThrow(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
+    expect(fn () => Livewire::test(BackupsIndex::class)
+        ->set('settingsServerId', $this->bobServer->id)
+        ->set('settingsBackupId', 'id-BobSecret')
+        ->call('snoozeJob'))
+        ->toThrow(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
+    expect(\App\Models\BackupJobSetting::count())->toBe(0);
+});
+
+test('another user\'s server cannot be snoozed', function () {
+    $this->actingAs($this->alice);
+
+    expect(fn () => Livewire::test(BackupServersIndex::class)->call('snoozeServer', $this->bobServer->id, '1d'))
+        ->toThrow(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
+    expect($this->bobServer->fresh()->muted_until)->toBeNull();
+});

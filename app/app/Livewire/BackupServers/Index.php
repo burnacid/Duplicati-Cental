@@ -4,6 +4,7 @@ namespace App\Livewire\BackupServers;
 
 use App\Models\BackupResult;
 use App\Models\BackupServer;
+use App\Support\Snooze;
 use Flux\Flux;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -47,6 +48,26 @@ class Index extends Component
 
         $this->deleteId = null;
         Flux::modal('delete-server')->close();
+    }
+
+    public function snoozeServer(string $id, string $duration): void
+    {
+        abort_unless(array_key_exists($duration, Snooze::OPTIONS), 422);
+
+        $server = BackupServer::ownedBy(auth()->user())->findOrFail($id);
+        $this->authorize('update', $server);
+        $server->update(['muted_until' => Snooze::until($duration)]);
+
+        session()->flash('message', "Alerts for {$server->name} snoozed " . Snooze::label($server->muted_until) . '.');
+    }
+
+    public function resumeServer(string $id): void
+    {
+        $server = BackupServer::ownedBy(auth()->user())->findOrFail($id);
+        $this->authorize('update', $server);
+        $server->update(['muted_until' => null]);
+
+        session()->flash('message', "Alerts for {$server->name} resumed.");
     }
 
     public function confirmRegenerate(string $id): void

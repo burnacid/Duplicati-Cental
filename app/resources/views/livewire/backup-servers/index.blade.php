@@ -30,8 +30,24 @@
                         @if($server->description)
                             <flux:subheading>{{ $server->description }}</flux:subheading>
                         @endif
+                        @if($snoozed = \App\Support\Snooze::label($server->muted_until))
+                            <flux:badge size="sm" color="zinc" icon="bell-slash" class="mt-1">Alerts snoozed {{ $snoozed }}</flux:badge>
+                        @endif
                     </div>
                     <div class="flex gap-1 shrink-0">
+                        <flux:dropdown position="bottom" align="end">
+                            <flux:button size="sm" variant="ghost" :icon="$server->isMuted() ? 'bell-slash' : 'bell'" aria-label="Snooze alerts for {{ $server->name }}" />
+                            <flux:menu>
+                                @if($server->isMuted())
+                                    <flux:menu.item icon="bell" wire:click="resumeServer({{ \Illuminate\Support\Js::from($server->id) }})">Resume alerts</flux:menu.item>
+                                @else
+                                    <flux:menu.heading>Snooze alerts for</flux:menu.heading>
+                                    @foreach(\App\Support\Snooze::OPTIONS as $value => $label)
+                                        <flux:menu.item wire:click="snoozeServer({{ \Illuminate\Support\Js::from($server->id) }}, {{ \Illuminate\Support\Js::from($value) }})">{{ $label }}</flux:menu.item>
+                                    @endforeach
+                                @endif
+                            </flux:menu>
+                        </flux:dropdown>
                         <flux:button size="sm" variant="ghost" icon="pencil-square" :href="route('backup-servers.edit', $server)" wire:navigate aria-label="Edit {{ $server->name }}" />
                         <flux:button size="sm" variant="ghost" icon="trash" class="text-red-600 dark:text-red-400" wire:click="confirmDelete({{ \Illuminate\Support\Js::from($server->id) }})" aria-label="Delete {{ $server->name }}" />
                     </div>

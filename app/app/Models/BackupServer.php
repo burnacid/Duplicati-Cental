@@ -13,9 +13,16 @@ class BackupServer extends Model
 {
     use HasFactory, HasUuids;
 
-    protected $fillable = ['name', 'description', 'user_id'];
+    protected $fillable = ['name', 'description', 'user_id', 'muted_until'];
 
     protected $hidden = ['api_key'];
+
+    protected $casts = [
+        'muted_until' => 'datetime',
+    ];
+
+    /** "Snooze until I resume" is stored as a date this far ahead. */
+    public const MUTE_INDEFINITELY_YEARS = 100;
 
     protected static function boot()
     {
@@ -39,6 +46,29 @@ class BackupServer extends Model
     public function backupResults()
     {
         return $this->hasMany(BackupResult::class);
+    }
+
+    public function jobSettings()
+    {
+        return $this->hasMany(BackupJobSetting::class);
+    }
+
+    public function isMuted(): bool
+    {
+        return $this->muted_until !== null && $this->muted_until->isFuture();
+    }
+
+    /** Whether alerts for this server, or for the given job on it, are snoozed right now. */
+    public function isJobMuted(?string $backupId): bool
+    {
+        if ($this->isMuted()) {
+            return true;
+        }
+
+        return $backupId !== null && $this->jobSettings()
+            ->where('backup_id', $backupId)
+            ->where('muted_until', '>', now())
+            ->exists();
     }
 
     public function getBackupServerUrlAttribute()
