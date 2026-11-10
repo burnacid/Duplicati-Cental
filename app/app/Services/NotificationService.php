@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\BackupStatus;
 use App\Models\BackupResult;
 use App\Models\NotificationChannel;
+use App\Models\RemoteControlRegistration;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Http;
@@ -93,6 +94,43 @@ class NotificationService
             ->each(fn (NotificationChannel $channel) => $this->deliver($channel, $message, $subject, $context));
     }
 
+    /** A remote-controlled instance stopped checking in. Sent to channels with overdue alerts on. */
+    public function notifyInstanceOffline(User $user, RemoteControlRegistration $registration, CarbonInterface $lastSeen): void
+    {
+        $this->notifyInstanceState($user, $registration, 'instance_offline',
+            sprintf('[Offline] %s', $registration->display_name),
+            sprintf('Duplicati instance "%s" has not been seen since %s. Scheduled backups may not run and cannot be controlled from Duplicati Central.',
+                $registration->display_name, $lastSeen->copy()->setTimezone(config('app.timezone'))->format('Y-m-d H:i')),
+            ['last_seen_at' => $lastSeen->toIso8601String()],
+        );
+    }
+
+    public function notifyInstanceOnline(User $user, RemoteControlRegistration $registration, CarbonInterface $offlineSince): void
+    {
+        $this->notifyInstanceState($user, $registration, 'instance_online',
+            sprintf('[Online] %s', $registration->display_name),
+            sprintf('Duplicati instance "%s" is connected again (offline alert sent %s).',
+                $registration->display_name, $offlineSince->copy()->setTimezone(config('app.timezone'))->format('Y-m-d H:i')),
+            [],
+        );
+    }
+
+    private function notifyInstanceState(User $user, RemoteControlRegistration $registration, string $event, string $subject, string $message, array $extra): void
+    {
+        $context = array_merge([
+            'event' => $event,
+            'instance' => $registration->display_name,
+            'server' => $registration->backupServer?->name,
+            'url' => route('remote-control.show', $registration->id),
+        ], $extra);
+
+        $user->notificationChannels()
+            ->where('is_active', true)
+            ->where('notify_overdue', true)
+            ->get()
+            ->each(fn (NotificationChannel $channel) => $this->deliver($channel, $message, $subject, $context));
+    }
+
     public function notifyOverdue(User $user, array $job): void
     {
         $subject = sprintf('[Overdue] %s - %s', $job['server_name'], $job['backup_name']);
@@ -172,7 +210,7 @@ class NotificationService
     /** Failures and overdue backups are sent with a higher priority where the service supports it. */
     private function isUrgent(array $context): bool
     {
-        if (($context['event'] ?? null) === 'backup_overdue') {
+        if (in_array($context['event'] ?? null, ['backup_overdue', 'instance_offline'], true)) {
             return true;
         }
 

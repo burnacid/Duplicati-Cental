@@ -322,13 +322,25 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
                 'error_message' => 'No connection available before timeout.',
             ]);
 
-        RemoteControlCommand::query()
+        // Sent commands may have a longer timeout of their own (e.g. listing a backup).
+        $expired = RemoteControlCommand::query()
             ->where('status', RemoteControlCommand::STATUS_SENT)
             ->where('sent_at', '<', $cutoff)
-            ->update([
-                'status' => RemoteControlCommand::STATUS_TIMEOUT,
-                'error_message' => 'No response received before timeout.',
-            ]);
+            ->get(['id', 'sent_at', 'timeout_seconds'])
+            ->filter(fn (RemoteControlCommand $command) => $command->sent_at->lt(
+                now()->subSeconds($command->timeout_seconds ?: RemoteControlCommand::DEFAULT_TIMEOUT_SECONDS)
+            ))
+            ->pluck('id');
+
+        if ($expired->isNotEmpty()) {
+            RemoteControlCommand::query()
+                ->whereIn('id', $expired)
+                ->where('status', RemoteControlCommand::STATUS_SENT)
+                ->update([
+                    'status' => RemoteControlCommand::STATUS_TIMEOUT,
+                    'error_message' => 'No response received before timeout.',
+                ]);
+        }
     }
 
     /**

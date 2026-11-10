@@ -3,6 +3,9 @@
 namespace App\Livewire\RemoteControl;
 
 use App\Jobs\ImportRemoteControlLogs;
+use App\Livewire\RemoteControl\Concerns\AwaitsRemoteCommands;
+use App\Livewire\RemoteControl\Concerns\BrowsesRestore;
+use App\Livewire\RemoteControl\Concerns\ShowsJobConfiguration;
 use App\Models\BackupResult;
 use App\Models\RemoteControlCommand;
 use App\Models\RemoteControlRegistration;
@@ -11,15 +14,34 @@ use App\Services\RemoteLogImportService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
+/**
+ * One remote-controlled Duplicati instance: its jobs, live progress, operations
+ * (run, verify, compact, repair, recreate database, restore), job details and schedule,
+ * and pausing or stopping the instance.
+ */
 class Show extends Component
 {
+    use AwaitsRemoteCommands, BrowsesRestore, ShowsJobConfiguration;
+
+    /**
+     * Operations per job. `pre` is sent first (recreate = delete the local database, then repair).
+     */
     public const OPERATIONS = [
         'run' => ['label' => 'Backup', 'path' => '/api/v1/backup/%s/run?skipQueue=false'],
+        'verify' => ['label' => 'Verify', 'path' => '/api/v1/backup/%s/verify'],
+        'compact' => ['label' => 'Compact', 'path' => '/api/v1/backup/%s/compact'],
         'repair' => ['label' => 'Repair', 'path' => '/api/v1/backup/%s/repair'],
+        'recreate' => ['label' => 'Recreate database', 'pre' => '/api/v1/backup/%s/deletedb', 'path' => '/api/v1/backup/%s/repair'],
+        'restore' => ['label' => 'Restore', 'path' => '/api/v1/backup/%s/restore'],
     ];
 
+    /** Pause choices: Duplicati duration => label ('' = until resumed). */
+    public const PAUSE_OPTIONS = ['15m' => '15 minutes', '1h' => '1 hour', '4h' => '4 hours', '1D' => '1 day', '' => 'Until resumed'];
+
+    #[Locked]
     public RemoteControlRegistration $registration;
 
     public ?string $backupsCommandId = null;
@@ -31,7 +53,7 @@ class Show extends Component
      *
      * @var array<string, array{
      *     operation: string, phase: string, task_id: ?int, message: ?string,
-     *     command_id: ?string, command_kind: ?string, updated_at: string
+     *     command_id: ?string, command_kind: ?string, updated_at: string, next_path?: ?string
      * }>
      */
     public array $tasks = [];
@@ -41,6 +63,13 @@ class Show extends Component
     public ?array $progress = null;
 
     public ?string $progressError = null;
+
+    /** Instance state: ProgramState (Running/Paused) and EstimatedPauseEnd. */
+    public ?array $serverState = null;
+
+    public ?string $instanceMessage = null;
+
+    public string $pauseFor = '1h';
 
     public function mount(string $id, RemoteControlCommandService $commandService): void
     {
@@ -58,20 +87,33 @@ class Show extends Component
     {
         $this->collectBackups();
         $this->collectProgress($commandService);
+        $this->collectRequests();
+
+        if ($this->serverState === null && ! $this->isWaitingFor('serverstate')) {
+            $this->request('serverstate', 'GET', '/api/v1/serverstate');
+        }
 
         foreach (array_keys($this->tasks) as $backupId) {
             $this->advanceTask((string) $backupId, $commandService);
         }
     }
 
-    public function runBackup(string $backupId, RemoteControlCommandService $commandService): void
+    public function runBackup(string $backupId): void
     {
-        $this->startOperation('run', $backupId, $commandService);
+        $this->startOperation('run', $backupId);
     }
 
-    public function repairBackup(string $backupId, RemoteControlCommandService $commandService): void
+    public function repairBackup(string $backupId): void
     {
-        $this->startOperation('repair', $backupId, $commandService);
+        $this->startOperation('repair', $backupId);
+    }
+
+    /** Run, verify, compact, repair or recreate from the job's menu. */
+    public function runOperation(string $operation, string $backupId): void
+    {
+        if ($operation !== 'restore') {
+            $this->startOperation($operation, $backupId);
+        }
     }
 
     /**
@@ -100,28 +142,99 @@ class Show extends Component
         return in_array($task['phase'], ['completed', 'failed', 'error'], true);
     }
 
-    private function startOperation(string $operation, string $backupId, RemoteControlCommandService $commandService): void
+    /** Stop the running task after the current file (abort: immediately). */
+    public function stopTask(bool $abort = false): void
     {
-        if (! isset(self::OPERATIONS[$operation]) || $this->taskInFlight($backupId)) {
+        $taskId = $this->progress['TaskID'] ?? null;
+        if (! is_numeric($taskId)) {
             return;
         }
 
-        $command = $commandService->dispatch(
+        $this->instanceMessage = $abort ? 'Aborting…' : 'Stopping…';
+        $this->request($abort ? 'abort' : 'stop', 'POST', sprintf('/api/v1/task/%d/%s', (int) $taskId, $abort ? 'abort' : 'stop'));
+    }
+
+    /** Pause scheduled backups on the instance (and the running one). */
+    public function pauseInstance(): void
+    {
+        if (! array_key_exists($this->pauseFor, self::PAUSE_OPTIONS)) {
+            return;
+        }
+
+        $this->instanceMessage = 'Pausing…';
+        $query = $this->pauseFor === '' ? '' : '?duration='.rawurlencode($this->pauseFor);
+        $this->request('pause', 'POST', '/api/v1/serverstate/pause'.$query);
+    }
+
+    public function resumeInstance(): void
+    {
+        $this->instanceMessage = 'Resuming…';
+        $this->request('resume', 'POST', '/api/v1/serverstate/resume');
+    }
+
+    protected function onRemoteResponse(string $key, ?int $code, array $body, ?string $error): void
+    {
+        match ($key) {
+            'config', 'save' => $this->onJobConfigResponse($key, $body, $error),
+            'filesets', 'folder' => $this->onRestoreResponse($key, $body, $error),
+            'serverstate' => $this->serverState = $error === null ? $body : ['ProgramState' => null, 'Error' => $error],
+            default => $this->onInstanceResponse($key, $error),
+        };
+    }
+
+    private function onInstanceResponse(string $key, ?string $error): void
+    {
+        if ($error !== null) {
+            $this->instanceMessage = 'Failed: '.$error;
+
+            return;
+        }
+
+        $this->instanceMessage = match ($key) {
+            'stop' => 'The task stops after the current file.',
+            'abort' => 'The task was aborted.',
+            'pause' => 'The instance is paused.',
+            'resume' => 'The instance is running again.',
+            default => null,
+        };
+
+        if (in_array($key, ['pause', 'resume'], true)) {
+            $this->request('serverstate', 'GET', '/api/v1/serverstate');
+        }
+    }
+
+    /**
+     * Starts an operation for a job; false when one is still running for it.
+     */
+    protected function startOperation(string $operation, string $backupId, ?array $body = null): bool
+    {
+        if (! isset(self::OPERATIONS[$operation]) || $this->taskInFlight($backupId)) {
+            return false;
+        }
+
+        $definition = self::OPERATIONS[$operation];
+        $first = $definition['pre'] ?? $definition['path'];
+
+        $command = app(RemoteControlCommandService::class)->dispatch(
             $this->registration,
             'POST',
-            sprintf(self::OPERATIONS[$operation]['path'], rawurlencode($backupId)),
+            sprintf($first, rawurlencode($backupId)),
+            $body,
             requestedByUserId: Auth::id(),
         );
 
         $this->tasks[$backupId] = [
-            'operation' => self::OPERATIONS[$operation]['label'],
+            'operation' => $definition['label'],
             'phase' => 'sending',
             'task_id' => null,
             'message' => null,
             'command_id' => $command->id,
-            'command_kind' => 'start',
+            'command_kind' => isset($definition['pre']) ? 'pre' : 'start',
+            'next_path' => isset($definition['pre']) ? sprintf($definition['path'], rawurlencode($backupId)) : null,
             'updated_at' => now()->toIso8601String(),
         ];
+
+        return true;
     }
 
     private function taskInFlight(string $backupId): bool
@@ -130,7 +243,7 @@ class Show extends Component
     }
 
     /**
-     * Moves a task forward: start command -> Duplicati task id -> poll task status until done.
+     * Moves a task forward: (pre-step ->) start command -> Duplicati task id -> poll task status until done.
      */
     private function advanceTask(string $backupId, RemoteControlCommandService $commandService): void
     {
@@ -151,7 +264,7 @@ class Show extends Component
             return;
         }
 
-        $command = RemoteControlCommand::query()->find($task['command_id']);
+        $command = $this->findCommand($task['command_id']);
 
         if ($command === null) {
             $task = $this->fail($task, 'The request to the instance was lost.');
@@ -163,6 +276,13 @@ class Show extends Component
             $body = json_decode((string) $command->response_body, true);
             $body = is_array($body) ? $body : [];
 
+            if ($task['command_kind'] === 'pre') {
+                $task = $this->applyPreResponse($task, $command->response_status_code, $body, $commandService);
+                $this->tasks[$backupId] = $task;
+
+                return;
+            }
+
             $task = $task['command_kind'] === 'start'
                 ? $this->applyStartResponse($task, $command->response_status_code, $body)
                 : $this->applyStatusResponse($task, $command->response_status_code, $body);
@@ -171,6 +291,24 @@ class Show extends Component
         $task['command_id'] = null;
         $task['updated_at'] = now()->toIso8601String();
         $this->tasks[$backupId] = $task;
+    }
+
+    /** The pre-step succeeded: send the real start command. */
+    private function applyPreResponse(array $task, ?int $statusCode, array $body, RemoteControlCommandService $commandService): array
+    {
+        if ($statusCode < 200 || $statusCode >= 300) {
+            $task = $this->fail($task, self::remoteError($statusCode, $body));
+            $task['command_id'] = null;
+
+            return $task;
+        }
+
+        $task['command_id'] = $commandService->dispatch($this->registration, 'POST', (string) $task['next_path'], requestedByUserId: Auth::id())->id;
+        $task['command_kind'] = 'start';
+        $task['next_path'] = null;
+        $task['updated_at'] = now()->toIso8601String();
+
+        return $task;
     }
 
     private function applyStartResponse(array $task, ?int $statusCode, array $body): array
@@ -218,19 +356,27 @@ class Show extends Component
         return $task;
     }
 
+    /** Fetch the job list again (e.g. after a schedule change). */
+    protected function refreshBackups(): void
+    {
+        if ($this->backupsCommandId === null) {
+            $this->backupsCommandId = app(RemoteControlCommandService::class)->dispatch($this->registration, 'GET', '/api/v1/backups')->id;
+        }
+    }
+
     private function collectBackups(): void
     {
         if ($this->backupsCommandId === null) {
             return;
         }
 
-        $command = RemoteControlCommand::query()->find($this->backupsCommandId);
+        $command = $this->findCommand($this->backupsCommandId);
 
-        if ($command === null || ! $command->isFinished()) {
+        if ($command !== null && ! $command->isFinished()) {
             return;
         }
 
-        if ($command->status === RemoteControlCommand::STATUS_COMPLETED && $command->response_status_code === 200) {
+        if ($command?->status === RemoteControlCommand::STATUS_COMPLETED && $command->response_status_code === 200) {
             $decoded = json_decode((string) $command->response_body, true);
             $this->backups = is_array($decoded) ? RemoteLogImportService::normalizeBackups($decoded) : [];
         }
@@ -247,22 +393,22 @@ class Show extends Component
             return;
         }
 
-        $command = RemoteControlCommand::query()->find($this->progressCommandId);
+        $command = $this->findCommand($this->progressCommandId);
 
-        if ($command === null || ! $command->isFinished()) {
+        if ($command !== null && ! $command->isFinished()) {
             return;
         }
 
-        if ($command->status === RemoteControlCommand::STATUS_COMPLETED && $command->response_status_code === 200) {
+        if ($command?->status === RemoteControlCommand::STATUS_COMPLETED && $command->response_status_code === 200) {
             $decoded = json_decode((string) $command->response_body, true);
             $this->progress = is_array($decoded) ? $decoded : null;
             $this->progressError = null;
-        } elseif ($command->status === RemoteControlCommand::STATUS_COMPLETED && $command->response_status_code === 404) {
+        } elseif ($command?->status === RemoteControlCommand::STATUS_COMPLETED && $command->response_status_code === 404) {
             $this->progress = null;
             $this->progressError = null;
         } else {
             $this->progress = null;
-            $this->progressError = $command->error_message ?? 'Unable to fetch progress.';
+            $this->progressError = $command?->error_message ?? 'Unable to fetch progress.';
         }
 
         $this->progressCommandId = null;
@@ -302,6 +448,9 @@ class Show extends Component
         return view('livewire.remote-control.show', [
             'lastResults' => $this->latestResultsByBackupId(),
             'importStatus' => Cache::get(ImportRemoteControlLogs::statusKey($this->registration->id)),
+            'summary' => $this->jobSummary(),
+            'detailsName' => collect($this->backups ?? [])->firstWhere('id', $this->detailsBackupId)['name'] ?? $this->detailsBackupId,
+            'restoreName' => collect($this->backups ?? [])->firstWhere('id', $this->restoreBackupId)['name'] ?? $this->restoreBackupId,
         ]);
     }
 }

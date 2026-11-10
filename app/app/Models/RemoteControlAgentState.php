@@ -14,9 +14,11 @@ class RemoteControlAgentState extends Model
         'disconnected_at',
         'last_applied_settings_version',
         'metadata',
+        'offline_notified_at',
     ];
 
     protected $casts = [
+        'offline_notified_at' => 'datetime',
         'connected_at' => 'datetime',
         'last_seen_at' => 'datetime',
         'disconnected_at' => 'datetime',

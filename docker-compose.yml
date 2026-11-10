@@ -43,6 +43,8 @@ services:
 
       # Remote control of Duplicati instances (registration, run backup, history import).
       REMOTE_CONTROL_ENABLED: ${REMOTE_CONTROL_ENABLED:-true}
+      # Alert when an instance has not been seen for this many minutes (0 = off).
+      REMOTE_CONTROL_OFFLINE_ALERT_MINUTES: ${REMOTE_CONTROL_OFFLINE_ALERT_MINUTES:-15}
 
       # Behind your own reverse proxy (Traefik, nginx, Caddy, ...): its IP(s) or "*".
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}

@@ -16,6 +16,19 @@
             </flux:callout>
         @endif
 
+        @if ($failedJobs->isNotEmpty())
+            <flux:callout icon="exclamation-triangle" variant="warning">
+                <flux:callout.heading>{{ $failedJobs->count() }} failed job(s) on connected instances</flux:callout.heading>
+                <flux:callout.text>{{ $failedJobs->pluck('name')->join(', ') }}</flux:callout.text>
+                <x-slot name="actions">
+                    <flux:button size="sm" icon="play" wire:click="runFailedJobs('run')"
+                                 wire:confirm="Start a backup for {{ $failedJobs->count() }} failed job(s)?">Run them again</flux:button>
+                    <flux:button size="sm" icon="wrench" wire:click="runFailedJobs('repair')"
+                                 wire:confirm="Repair the database of {{ $failedJobs->count() }} failed job(s)?">Repair them</flux:button>
+                </x-slot>
+            </flux:callout>
+        @endif
+
         <div class="space-y-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
             @foreach ($registrationUrls as $label => $url)
                 <x-copy-field :label="$label" :value="$url" />

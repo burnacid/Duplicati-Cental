@@ -21,7 +21,7 @@
                 @endforeach
             </div>
             <div class="mt-3 flex gap-2">
-                <flux:button size="sm" icon="clipboard" x-on:click="navigator.clipboard.writeText(@js(implode(PHP_EOL, $recoveryCodes)))">{{ __('Copy') }}</flux:button>
+                <flux:button size="sm" icon="clipboard" x-on:click="navigator.clipboard.writeText({{ \Illuminate\Support\Js::from(implode(PHP_EOL, $recoveryCodes)) }})">{{ __('Copy') }}</flux:button>
                 <flux:button size="sm" variant="ghost" wire:click="hideRecoveryCodes">{{ __('I have saved them') }}</flux:button>
             </div>
         </div>

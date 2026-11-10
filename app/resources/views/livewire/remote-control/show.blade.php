@@ -32,6 +32,35 @@
                 @endif
             </div>
             <p class="text-sm text-zinc-500">@if ($registration->machine_name && $registration->machine_name !== $registration->display_name){{ $registration->machine_name }} &middot; @endif{{ $registration->machine_id ?: 'no machine id' }} &middot; {{ $registration->version ?: 'n/a' }}</p>
+
+            @php
+                $programState = $serverState['ProgramState'] ?? null;
+            @endphp
+            <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                @if ($programState === 'Paused')
+                    <flux:badge size="sm" color="amber" icon="pause">Paused</flux:badge>
+                    @if (!empty($serverState['EstimatedPauseEnd']) && !str_starts_with((string) $serverState['EstimatedPauseEnd'], '0001-'))
+                        <span class="text-xs text-zinc-500">until {{ \Illuminate\Support\Carbon::parse($serverState['EstimatedPauseEnd'])->setTimezone(config('app.timezone'))->format('Y-m-d H:i') }}</span>
+                    @endif
+                    <flux:button size="sm" icon="play" wire:click="resumeInstance">Resume</flux:button>
+                @elseif ($programState === 'Running')
+                    <flux:badge size="sm" color="green" icon="play">Scheduler running</flux:badge>
+                    <flux:select size="sm" wire:model="pauseFor" class="max-w-40" aria-label="Pause for">
+                        @foreach (\App\Livewire\RemoteControl\Show::PAUSE_OPTIONS as $value => $label)
+                            <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    <flux:button size="sm" icon="pause" wire:click="pauseInstance"
+                                 wire:confirm="Pause this instance? Scheduled backups do not start while it is paused.">Pause</flux:button>
+                @elseif (!empty($serverState['Error']))
+                    <span class="text-xs text-zinc-500">State unknown: {{ $serverState['Error'] }}</span>
+                @else
+                    <span class="text-xs text-zinc-500">Checking state…</span>
+                @endif
+                @if ($instanceMessage)
+                    <span class="text-xs {{ str_starts_with($instanceMessage, 'Failed') ? 'text-red-600 dark:text-red-400' : 'text-zinc-500' }}">{{ $instanceMessage }}</span>
+                @endif
+            </div>
         </div>
 
         <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
@@ -48,11 +77,21 @@
                         $overall = isset($progress['OverallProgress']) ? max(0, min(1, (float) $progress['OverallProgress'])) : null;
                     @endphp
                     <div class="space-y-2">
-                        <p class="text-sm">
-                            <strong>{{ $backupNames[(string) ($progress['BackupID'] ?? '')] ?? ('Backup ' . ($progress['BackupID'] ?? '?')) }}</strong>
-                            &middot; task {{ $progress['TaskID'] ?? '?' }}
-                            &middot; {{ $progress['Phase'] ?? 'Working' }}
-                        </p>
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <p class="text-sm">
+                                <strong>{{ $backupNames[(string) ($progress['BackupID'] ?? '')] ?? ('Backup ' . ($progress['BackupID'] ?? '?')) }}</strong>
+                                &middot; task {{ $progress['TaskID'] ?? '?' }}
+                                &middot; {{ $progress['Phase'] ?? 'Working' }}
+                            </p>
+                            @if (isset($progress['TaskID']))
+                                <div class="flex gap-2">
+                                    <flux:button size="xs" icon="stop" wire:click="stopTask(false)"
+                                                 wire:confirm="Stop this task after the current file?">Stop</flux:button>
+                                    <flux:button size="xs" variant="danger" icon="x-mark" wire:click="stopTask(true)"
+                                                 wire:confirm="Abort this task immediately? An aborted backup may need a repair.">Abort</flux:button>
+                                </div>
+                            @endif
+                        </div>
                         @if ($overall !== null)
                             <div class="h-2 w-full rounded bg-zinc-200 dark:bg-zinc-700" role="progressbar" aria-valuenow="{{ round($overall * 100) }}" aria-valuemin="0" aria-valuemax="100">
                                 <div class="h-2 rounded bg-blue-500" style="width: {{ round($overall * 100) }}%"></div>
@@ -154,19 +193,21 @@
                                 </div>
 
                                 <div class="flex shrink-0 items-center gap-2">
-                                    <button type="button"
-                                            wire:click="repairBackup(@js($backup['id']))"
-                                            wire:confirm="Repair the local database of {{ $backup['name'] }}? Duplicati rebuilds missing information from the remote files."
-                                            @disabled($busy)
-                                            class="inline-flex items-center rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">
-                                        Repair
-                                    </button>
-                                    <button type="button"
-                                            wire:click="runBackup(@js($backup['id']))"
-                                            @disabled($busy)
-                                            class="inline-flex items-center rounded-md border border-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-50 disabled:opacity-50 dark:border-indigo-900/50 dark:text-indigo-300 dark:hover:bg-indigo-950/40">
-                                        Run now
-                                    </button>
+                                    <flux:button size="sm" icon="information-circle" wire:click="showJob({{ \Illuminate\Support\Js::from($backup['id']) }})">Details</flux:button>
+                                    <flux:button size="sm" variant="primary" icon="play" wire:click="runBackup({{ \Illuminate\Support\Js::from($backup['id']) }})" :disabled="$busy">Run now</flux:button>
+                                    <flux:dropdown position="bottom" align="end">
+                                        <flux:button size="sm" icon="ellipsis-horizontal" :disabled="$busy" aria-label="More actions for {{ $backup['name'] }}" />
+                                        <flux:menu>
+                                            <flux:menu.item icon="arrow-uturn-left" wire:click="openRestore({{ \Illuminate\Support\Js::from($backup['id']) }})">Restore files…</flux:menu.item>
+                                            <flux:menu.separator />
+                                            <flux:menu.item icon="check-badge" wire:click="runOperation('verify', {{ \Illuminate\Support\Js::from($backup['id']) }})">Verify backup files</flux:menu.item>
+                                            <flux:menu.item icon="archive-box" wire:click="runOperation('compact', {{ \Illuminate\Support\Js::from($backup['id']) }})">Compact now</flux:menu.item>
+                                            <flux:menu.item icon="wrench" wire:click="repairBackup({{ \Illuminate\Support\Js::from($backup['id']) }})"
+                                                            wire:confirm="Repair the local database of {{ $backup['name'] }}? Duplicati rebuilds missing information from the remote files.">Repair database</flux:menu.item>
+                                            <flux:menu.item icon="arrow-path" variant="danger" wire:click="runOperation('recreate', {{ \Illuminate\Support\Js::from($backup['id']) }})"
+                                                            wire:confirm="Delete and recreate the local database of {{ $backup['name'] }}? Duplicati downloads information from the destination; this can take a long time.">Recreate database</flux:menu.item>
+                                        </flux:menu>
+                                    </flux:dropdown>
                                 </div>
                             </div>
 
@@ -195,4 +236,197 @@
             @endif
         </div>
     </div>
+
+    {{-- Job details and schedule --}}
+    <flux:modal name="job-details" class="w-full max-w-2xl">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ $summary['name'] ?? $detailsName }}</flux:heading>
+                @if (!empty($summary['description']))
+                    <flux:subheading>{{ $summary['description'] }}</flux:subheading>
+                @endif
+            </div>
+
+            @if ($detailsError)
+                <flux:callout icon="exclamation-triangle" variant="danger"><flux:callout.text>{{ $detailsError }}</flux:callout.text></flux:callout>
+            @elseif ($summary === null)
+                <flux:text>Loading the job configuration from the instance…</flux:text>
+            @else
+                <dl class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-[10rem_1fr]">
+                    <dt class="text-zinc-500">Sources</dt>
+                    <dd>
+                        @forelse ($summary['sources'] as $source)
+                            <div class="break-all font-mono text-xs">{{ $source }}</div>
+                        @empty
+                            <span class="text-zinc-500">None</span>
+                        @endforelse
+                    </dd>
+                    <dt class="text-zinc-500">Destination</dt>
+                    <dd><flux:badge size="sm">{{ $summary['destination']['type'] }}</flux:badge> <span class="break-all font-mono text-xs">{{ $summary['destination']['location'] }}</span></dd>
+                    <dt class="text-zinc-500">Schedule</dt>
+                    <dd>
+                        @if ($summary['schedule'])
+                            {{ ucfirst($summary['schedule']['repeat']) }}@if ($summary['schedule']['days']), on {{ implode(', ', $summary['schedule']['days']) }}@endif
+                            @if ($summary['schedule']['next_run'])<span class="text-zinc-500"> · next {{ $summary['schedule']['next_run']->format('Y-m-d H:i') }}</span>@endif
+                        @else
+                            <span class="text-zinc-500">Not scheduled (runs by hand)</span>
+                        @endif
+                    </dd>
+                    <dt class="text-zinc-500">Retention</dt>
+                    <dd>
+                        @forelse ($summary['retention'] as $label => $value)
+                            <div>{{ $label }}: <span class="font-mono text-xs">{{ $value }}</span></div>
+                        @empty
+                            <span class="text-zinc-500">Keep all versions</span>
+                        @endforelse
+                    </dd>
+                    <dt class="text-zinc-500">Encryption</dt>
+                    <dd>{{ $summary['encrypted'] ? 'Encrypted' : 'Not encrypted' }}</dd>
+                    @if ($summary['volume_size'])
+                        <dt class="text-zinc-500">Volume size</dt>
+                        <dd>{{ $summary['volume_size'] }}</dd>
+                    @endif
+                    <dt class="text-zinc-500">Filters / options</dt>
+                    <dd>{{ $summary['filters'] }} filter(s) · {{ $summary['settings'] }} advanced option(s)</dd>
+                </dl>
+
+                <flux:separator />
+
+                <form wire:submit="saveSchedule" class="space-y-4">
+                    <flux:heading size="sm">Change schedule</flux:heading>
+                    <flux:switch wire:model.live="scheduleEnabled" label="Run automatically" />
+                    @if ($scheduleEnabled)
+                        <div class="flex flex-wrap items-end gap-3">
+                            <div class="w-24"><flux:input wire:model="scheduleEvery" type="number" min="1" label="Every" /></div>
+                            <div class="w-36">
+                                <flux:select wire:model="scheduleUnit" label="Unit">
+                                    @foreach (\App\Support\DuplicatiJobConfig::REPEAT_UNITS as $value => $label)
+                                        <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                                    @endforeach
+                                </flux:select>
+                            </div>
+                            <div class="w-32"><flux:input wire:model="scheduleTime" type="time" label="Starting at" /></div>
+                        </div>
+                        <flux:checkbox.group wire:model="scheduleDays" label="Only on these days (none = every day)" class="flex flex-wrap gap-4">
+                            @foreach (\App\Support\DuplicatiJobConfig::WEEKDAYS as $day)
+                                <flux:checkbox value="{{ $day }}" label="{{ substr($day, 0, 3) }}" />
+                            @endforeach
+                        </flux:checkbox.group>
+                        <flux:text size="sm">Times are in {{ config('app.timezone') }}.</flux:text>
+                    @endif
+                    <div class="flex items-center justify-end gap-3">
+                        @if ($scheduleMessage)
+                            <flux:text size="sm" class="{{ str_starts_with($scheduleMessage, 'Not saved') ? 'text-red-600 dark:text-red-400' : '' }}">{{ $scheduleMessage }}</flux:text>
+                        @endif
+                        <flux:button type="submit" variant="primary">Save schedule</flux:button>
+                    </div>
+                </form>
+            @endif
+        </div>
+    </flux:modal>
+
+    {{-- Restore --}}
+    <flux:modal name="restore" class="w-full max-w-3xl">
+        <div class="space-y-5">
+            <div>
+                <flux:heading size="lg">Restore from {{ $restoreName }}</flux:heading>
+                <flux:subheading>
+                    @switch($restoreStep)
+                        @case('versions') Step 1 of 3: choose a version @break
+                        @case('files') Step 2 of 3: choose files and folders @break
+                        @default Step 3 of 3: where to restore
+                    @endswitch
+                </flux:subheading>
+            </div>
+
+            @if ($restoreError)
+                <flux:callout icon="exclamation-triangle" variant="danger"><flux:callout.text>{{ $restoreError }}</flux:callout.text></flux:callout>
+            @endif
+
+            @if ($restoreStep === 'versions')
+                @if ($restoreVersions === null)
+                    @unless ($restoreError)<flux:text>Reading the versions from the instance…</flux:text>@endunless
+                @elseif ($restoreVersions === [])
+                    <flux:text>This backup has no versions yet.</flux:text>
+                @else
+                    <div class="max-h-96 divide-y divide-zinc-100 overflow-y-auto rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-700">
+                        @foreach ($restoreVersions as $index => $version)
+                            <button type="button" wire:click="chooseVersion({{ $index }})" wire:key="rv-{{ $index }}"
+                                    class="flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                                <span>{{ \Illuminate\Support\Carbon::parse($version['time'])->setTimezone(config('app.timezone'))->format('Y-m-d H:i') }}
+                                    <span class="text-zinc-500">({{ \Illuminate\Support\Carbon::parse($version['time'])->diffForHumans() }})</span></span>
+                                <span class="text-xs text-zinc-500">
+                                    @if ($version['files'] !== null){{ number_format($version['files']) }} files @endif
+                                    @if ($version['size'] !== null) · {{ $fmtBytes($version['size']) }} @endif
+                                </span>
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
+            @elseif ($restoreStep === 'files')
+                <div class="flex flex-wrap items-center gap-2">
+                    <flux:button size="sm" icon="arrow-left" wire:click="$set('restoreStep', 'versions')">Versions</flux:button>
+                    <flux:button size="sm" icon="home" wire:click="browse(null)">Sources</flux:button>
+                    @if ($restoreFolder !== null)
+                        <flux:button size="sm" icon="arrow-up" wire:click="browseUp">Up</flux:button>
+                        <span class="break-all font-mono text-xs text-zinc-500">{{ $restoreFolder }}</span>
+                    @endif
+                </div>
+
+                @if ($this->isWaitingFor('folder'))
+                    <flux:text>Reading the folder…</flux:text>
+                @elseif ($restoreEntries === [])
+                    @unless ($restoreError)<flux:text>This folder is empty.</flux:text>@endunless
+                @else
+                    <div class="max-h-96 divide-y divide-zinc-100 overflow-y-auto rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-700">
+                        @foreach ($restoreEntries as $entry)
+                            <div class="flex items-center gap-3 px-4 py-2 text-sm" wire:key="re-{{ md5($entry['path']) }}">
+                                <input type="checkbox" value="{{ $entry['path'] }}" wire:model.live="restoreSelected" class="size-4 rounded border-zinc-300" aria-label="Select {{ $entry['name'] }}">
+                                @if ($entry['dir'])
+                                    <button type="button" wire:click="browse(@js($entry['path']))" class="flex min-w-0 flex-1 items-center gap-2 text-left hover:underline">
+                                        <flux:icon.folder class="size-4 shrink-0 text-amber-500" />
+                                        <span class="truncate">{{ $entry['name'] }}</span>
+                                    </button>
+                                @else
+                                    <span class="flex min-w-0 flex-1 items-center gap-2">
+                                        <flux:icon.document class="size-4 shrink-0 text-zinc-400" />
+                                        <span class="truncate">{{ $entry['name'] }}</span>
+                                    </span>
+                                    <span class="shrink-0 text-xs text-zinc-500">{{ $fmtBytes($entry['size']) }}</span>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                    @if ($restoreTotal > count($restoreEntries))
+                        <flux:text size="sm">Showing the first {{ count($restoreEntries) }} of {{ number_format($restoreTotal) }} entries. Select the folder to restore all of it.</flux:text>
+                    @endif
+                @endif
+
+                <div class="flex items-center justify-between gap-3">
+                    <flux:text size="sm">{{ count($restoreSelected) }} selected</flux:text>
+                    <flux:button variant="primary" wire:click="toRestoreOptions" :disabled="$restoreSelected === []">Next</flux:button>
+                </div>
+            @else
+                <div class="space-y-4">
+                    <flux:radio.group wire:model.live="restoreTarget" label="Restore to">
+                        <flux:radio value="original" label="The original location" />
+                        <flux:radio value="custom" label="Another folder on the instance" />
+                    </flux:radio.group>
+                    @if ($restoreTarget === 'custom')
+                        <flux:input wire:model="restorePath" label="Folder" placeholder="/tmp/restore or C:\Restore" />
+                    @endif
+                    <flux:switch wire:model="restoreOverwrite" label="Overwrite existing files" description="Off: existing files are kept and restored files get a timestamp in their name." />
+                    <flux:switch wire:model="restorePermissions" label="Restore file permissions" />
+
+                    <flux:text size="sm">{{ count($restoreSelected) }} item(s) from the version of {{ $restoreTime ? \Illuminate\Support\Carbon::parse($restoreTime)->setTimezone(config('app.timezone'))->format('Y-m-d H:i') : '' }}.</flux:text>
+
+                    <div class="flex justify-between gap-3">
+                        <flux:button icon="arrow-left" wire:click="$set('restoreStep', 'files')">Back</flux:button>
+                        <flux:button variant="primary" icon="arrow-uturn-left" wire:click="startRestore"
+                                     wire:confirm="Start the restore on the instance?">Start restore</flux:button>
+                    </div>
+                </div>
+            @endif
+        </div>
+    </flux:modal>
 </div>

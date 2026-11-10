@@ -3,6 +3,7 @@
 namespace App\Livewire\RemoteControl;
 
 use App\Models\RemoteControlRegistration;
+use App\Services\RemoteControlBulkService;
 use App\Services\RemoteControlUrlService;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -45,6 +46,20 @@ class Index extends Component
         $this->resetPage();
     }
 
+    /** Run (or repair) every failed job on the connected instances again. */
+    public function runFailedJobs(string $operation, RemoteControlBulkService $bulk): void
+    {
+        if (! in_array($operation, ['run', 'repair'], true)) {
+            return;
+        }
+
+        $count = $bulk->runOnFailedJobs(auth()->user(), $operation);
+
+        session()->flash('status', $count === 0
+            ? 'No failed jobs on connected instances.'
+            : sprintf('%s started for %d failed job(s). Follow them on each machine page or the dashboard.', $operation === 'run' ? 'Backup' : 'Repair', $count));
+    }
+
     public function render()
     {
         $registrations = RemoteControlRegistration::query()
@@ -63,6 +78,7 @@ class Index extends Component
 
         return view('livewire.remote-control.index', [
             'registrations' => $registrations,
+            'failedJobs' => app(RemoteControlBulkService::class)->failedJobs(auth()->user()),
         ]);
     }
 }

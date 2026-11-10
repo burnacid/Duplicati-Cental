@@ -13,6 +13,9 @@ Schedule::job(new QueueHeartbeat)->everyFiveMinutes()->name('health-queue');
 
 Schedule::command('backups:check-overdue')->hourly()->withoutOverlapping();
 
+// Remote-control instances that stopped checking in (REMOTE_CONTROL_OFFLINE_ALERT_MINUTES).
+Schedule::command('remote-control:check-offline')->everyFiveMinutes()->withoutOverlapping();
+
 if (config('backups.central.enabled')) {
     Schedule::command('app:backup')->dailyAt(config('backups.central.time'))->withoutOverlapping();
 }

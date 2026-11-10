@@ -37,11 +37,16 @@ class RemoteControlCommand extends Model
         'error_message',
         'sent_at',
         'completed_at',
+        'timeout_seconds',
     ];
+
+    /** Seconds to wait for an answer when no timeout is set. */
+    public const DEFAULT_TIMEOUT_SECONDS = 30;
 
     protected function casts(): array
     {
         return [
+            'timeout_seconds' => 'integer',
             'request_headers' => 'array',
             'response_headers' => 'array',
             'response_status_code' => 'integer',

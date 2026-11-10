@@ -7,6 +7,17 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+### Added
+- Remote control: **Details** per job shows its sources, destination (without credentials), schedule, retention, encryption and options, read from the instance.
+- Remote control: change a job's schedule from Central (interval, start time, allowed weekdays, or no schedule).
+- Remote control: restore files. Pick a version, browse its folders, select files and folders, and restore them to the original location or another folder on the instance. Needs a Duplicati version with the v2 listing API.
+- Remote control: verify, compact and recreate the local database from the job menu; stop or abort the running task; pause the instance (15 minutes to "until resumed") and resume it.
+- Remote Control page: run or repair every failed job on connected instances again in one go.
+- Alerts when a remote-controlled instance stops checking in for `REMOTE_CONTROL_OFFLINE_ALERT_MINUTES` (default 15, 0 = off) and when it is back. Sent to channels with overdue alerts on; snoozed servers are skipped.
+
+### Fixed
+- The "Copy" button for two-factor recovery codes did not copy anything.
+
 ## [0.5.0] - 2026-11-10
 
 ### Added

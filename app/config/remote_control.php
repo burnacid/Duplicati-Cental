@@ -8,6 +8,12 @@ return [
     */
     'enabled' => (bool) env('REMOTE_CONTROL_ENABLED', true),
 
+    /*
+    | Alert when a claimed instance has not been seen for this many minutes
+    | (0 = no offline alerts). Sent to channels with "overdue backups" on.
+    */
+    'offline_alert_minutes' => (int) env('REMOTE_CONTROL_OFFLINE_ALERT_MINUTES', 15),
+
     'bridge_url' => env('REMOTE_CONTROL_BRIDGE_URL'),
     'websocket_path' => env('REMOTE_CONTROL_WEBSOCKET_PATH', '/api/remote-control/ws'),
     'certificates_path' => env('REMOTE_CONTROL_CERTIFICATES_PATH', '/api/remote-control/certificates'),

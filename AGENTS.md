@@ -29,6 +29,7 @@ Duplicati instance
                     └─ queues PingHeartbeat (successful backups of jobs with a heartbeat_url)
 Scheduler (routes/console.php)
   ├─ backups:check-overdue (hourly) → NotificationService::notifyOverdue (skips snoozed jobs)
+  ├─ remote-control:check-offline (every 5 min) → notifyInstanceOffline / notifyInstanceOnline
   ├─ backups:send-digest daily|weekly (BACKUP_DIGEST_TIME) → DigestService::build → NotificationService::notifyDigest
   ├─ daily pruning (retention settings in config/backups.php)
   ├─ heartbeats every minute (scheduler) / 5 min (QueueHeartbeat job) → SystemHealthService
@@ -40,6 +41,8 @@ Scheduler (routes/console.php)
 - **Remote control switch**: `REMOTE_CONTROL_ENABLED` (`config('remote_control.enabled')`, default true). Remote-control routes use the `remote-control` middleware (404 when off); shared screens check the config before showing remote-control UI. Guard any new remote-control feature the same way.
 - **Remote-control protocol**: the welcome offers versions 1 and 2; the client's `protocolVersion` from auth is kept per connection. Duplicati 2.4+ (v2) refuses servers without version 2 and requires command payloads as `{"v":2,"jwe":...}` (RSA-OAEP-256 + A256GCM, gzip above 2 KiB, `zip:"gzip"`), with plaintext `{messageId, replyKey, request}`; replies are encrypted to `replyKey` (our own server key). See `RemoteControlCryptoService::encryptCommandRequest()` / `decryptCommandResponse()`.
 - **History import**: `RemoteLogImportService` pages through `GET /api/v1/backup/{id}/log` on a connected instance and stores `Result` entries as `BackupResult` (`source = 'remote-log'`, no notifications). Duplicates are matched on server + job (`DB-<id>`) + `BeginTime` (±2 s). Started from the machine page (`ImportRemoteControlLogs` job, status in cache) or `php artisan remote-control:import-logs {registration?} --days=30`. Both reports and imports go through `BackupResultFactory`.
+- **Machine page** (`App\Livewire\RemoteControl\Show`): every action is a `RemoteControlCommand` the websocket server forwards to the instance's local Duplicati API and fills in later. One-off requests use `Concerns\AwaitsRemoteCommands` (`request($key, ...)`, answers in `onRemoteResponse()`, commands always looked up within the page's registration); job operations use the `$tasks` state machine (`OPERATIONS`: optional `pre` step → start → `/api/v1/task/{id}` polling). Job details and the schedule editor are in `Concerns\ShowsJobConfiguration` + `App\Support\DuplicatiJobConfig` (PUT sends the job back as GET returned it; Duplicati restores masked passwords). Restore is in `Concerns\BrowsesRestore` (`/api/v2/backup/list-filesets` and `list-folder`, then `/api/v1/backup/{id}/restore` with Duplicati's filter format). Pass `timeoutSeconds` to `RemoteControlCommandService::dispatch()` for slow calls (default 30 s). `RemoteControlBulkService` runs or repairs all failed jobs on connected instances.
+- **Duplicati source**: `dupliciti/` (git-ignored) is a checkout of Duplicati; the REST endpoints are in `dupliciti/Duplicati/WebserverCore/Endpoints/` and the DTOs in `.../Dto/`. Check request and response shapes there (PascalCase JSON, enums as strings).
 - **Docker**: multi-stage build (composer → node → `dunglas/frankenphp`). supervisord runs FrankenPHP (`docker/Caddyfile`: app on `:8181`, `/api/remote-control/ws` proxied to the websocket server on 8090, optional auto-HTTPS via `SERVER_NAME`), the remote-control websocket, `queue:work` and `schedule:work`. `entrypoint.sh` creates the storage layout, generates/persists `APP_KEY`, moves a legacy SQLite file into `/app/storage/database.sqlite`, runs `php artisan optimize` and migrations. Because config is cached in the container, never call `env()` outside `config/*.php`.
 - Container files must keep LF line endings (`.gitattributes`).
 
@@ -76,7 +79,7 @@ Scheduler (routes/console.php)
 - Livewire components live in `app/app/Livewire/` and are namespaced `App\Livewire\`.
 - Components with pagination use `WithPagination` and call `$this->resetPage()` when filters change. Bookmarkable filters use `#[Url]`.
 - Size/duration formatting: `App\Livewire\Concerns\FormatsBackupValues` (handles .NET `d.hh:mm:ss` durations).
-- Use Flux components (`flux:button`, `flux:modal` opened via `Flux::modal()`, `flux:input copyable`, `flux:badge`, `flux:callout`). Pass user-supplied values to `wire:click` with `@js()`, never inside quoted strings.
+- Use Flux components (`flux:button`, `flux:modal` opened via `Flux::modal()`, `flux:input copyable`, `flux:badge`, `flux:callout`). Pass user-supplied values to `wire:click` with `@js()` on plain HTML elements, never inside quoted strings. Inside Flux component attributes (`<flux:button wire:click="...">`) `@js()` is not compiled: use `{{ \Illuminate\Support\Js::from($value) }}` there. Tests that call methods directly do not catch this; assert the rendered `wire:click` when it matters.
 - Volt single-file components (settings and auth pages) are in `resources/views/livewire/` and registered via `Volt::route()`.
 
 ## Authentication (TOTP & passkeys)

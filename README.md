@@ -108,7 +108,17 @@ After the next run the result appears on the dashboard. The URL contains a secre
 
 In Duplicati open **Settings → Remote control**, enter the registration URL from Central's **Remote Control** page and register. You can also start Duplicati with `--register-remote-control=<URL>`. Then claim the machine in Central and link it to its backup server.
 
-When the machine is connected you can run or repair jobs from Central and import the last 30 days of results from its log. Set `REMOTE_CONTROL_ENABLED=false` to turn all of this off.
+When the machine is connected, its page in Central lets you:
+
+- run a job now, verify its backup files, compact it, repair or recreate its local database;
+- see a job's configuration (**Details**: sources, destination, schedule, retention, encryption) and change its schedule;
+- **restore files**: pick a version, browse its folders, select files and folders, and restore them to the original location or another folder;
+- follow live progress, stop or abort the running task, and pause or resume the instance;
+- import the last 30 days of results from its log.
+
+The Remote Control page can run or repair every failed job on connected instances again in one go. When an instance stops checking in for `REMOTE_CONTROL_OFFLINE_ALERT_MINUTES` (default 15), channels with overdue alerts get a message, and another one when it is back. Set `REMOTE_CONTROL_ENABLED=false` to turn all of this off.
+
+Duplicati masks passwords before they leave the instance, so Central never sees them. Restoring needs a Duplicati version with the v2 listing API; older versions show a message instead.
 
 ## Configuration
 
@@ -124,6 +134,7 @@ All settings are environment variables. [.env.docker.example](.env.docker.exampl
 | `REGISTRATION_ENABLED` | `false` | Allow sign-up after the first account |
 | `REQUIRE_2FA` | `false` | Require an authenticator app or passkey for everyone |
 | `REMOTE_CONTROL_ENABLED` | `true` | Remote control of Duplicati instances |
+| `REMOTE_CONTROL_OFFLINE_ALERT_MINUTES` | `15` | Alert when an instance is not seen this long (`0` = off) |
 | `BACKUP_RETENTION_DAYS` | `365` | Keep results this many days (`0` = forever) |
 | `BACKUP_DIGEST_TIME` | `08:00` | Time of the daily summary (weekly: Mondays) |
 | `BACKUP_OVERDUE_GRACE_MINUTES` | `60` | Extra time before a job counts as overdue |

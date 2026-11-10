@@ -5,18 +5,9 @@ When an item ships it is removed here and recorded in [CHANGELOG.md](CHANGELOG.m
 
 Current version: see [VERSION](VERSION).
 
-## v0.5 – Monitoring & integrations
-
-Done, waiting for release (see Unreleased in the changelog).
-
 ## v0.6 – Remote control depth
 
-- **Job configuration** – show sources, destination type, schedule and retention on the machine page (read-only).
-- **More commands** – stop or pause a running task, verify, compact, delete old versions, recreate the local database.
-- **Bulk actions** – "run all failed jobs" or "repair all" across instances.
-- **Restore** – browse backup versions and files, and start a restore to the original or a new location.
-- **Edit schedules** from Central (later: edit the full job, export and import job definitions).
-- **Offline alerts** – notify when a remote-controlled instance disconnects (respects snooze).
+Done, waiting for release (see Unreleased in the changelog).
 
 ## v1.0 – Stable
 
@@ -34,5 +25,7 @@ Done, waiting for release (see Unreleased in the changelog).
 - Push notifications through the installed app (Web Push).
 - Storage cost estimate per destination.
 - Home Assistant integration.
+- Remote control: edit the full job from Central, export and import job definitions, create new jobs.
+- Remote control: delete old versions on demand (Duplicati applies the retention after every backup; there is no separate API call for it yet).
 
 Have a suggestion? Open an issue on [GitHub](https://github.com/burnacid/Duplicati-Cental/issues).

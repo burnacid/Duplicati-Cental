@@ -32,7 +32,7 @@
                         </div>
                         <p class="text-sm text-zinc-500">
                             {{ match($channel->notify_on) { 'all' => 'Every result', 'error' => 'Errors only', default => 'Warnings and errors' } }}
-                            @if($channel->notify_overdue) &middot; overdue backups @endif
+                            @if($channel->notify_overdue) &middot; overdue backups and offline instances @endif
                             @if(in_array($channel->digest, ['daily', 'weekly'], true)) &middot; {{ $channel->digest }} summary @endif
                         </p>
                     </div>
@@ -65,7 +65,7 @@
                 <flux:select.option value="error">Errors only</flux:select.option>
             </flux:select>
 
-            <flux:checkbox wire:model="notify_overdue" label="Alert when a backup stops reporting (overdue)" />
+            <flux:checkbox wire:model="notify_overdue" label="Alert when a backup stops reporting (overdue)" description="Also when a remote-controlled Duplicati instance goes offline." />
 
             <flux:select wire:model="digest" label="Summary" description="An overview of all jobs: runs, failures, overdue and snoozed jobs. Sent at {{ config('backups.digest_time') }}; weekly on Mondays.">
                 <flux:select.option value="off">No summary</flux:select.option>
