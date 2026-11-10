@@ -7,6 +7,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-10
+
 ### Added
 - Backup of Duplicati Central itself: `php artisan app:backup` saves the database, encryption key and remote-control keys in one file (optionally password protected), and `php artisan app:restore` puts them back. Set `CENTRAL_BACKUP_ENABLED=true` for a daily backup (`CENTRAL_BACKUP_TIME`, `CENTRAL_BACKUP_KEEP`, `CENTRAL_BACKUP_PASSWORD`).
 - Settings → Health: shows whether the scheduler, queue worker and remote-control server are running, whether the database is up to date, free disk space and the last backup of Central.
@@ -97,7 +99,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 - Notification channel settings (SMTP passwords, webhook headers) are encrypted in the database.
 - The Docker build no longer includes local secrets, keys, logs or `.env` files.
 
-[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/burnacid/Duplicati-Cental/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.1.0...v0.2.0
