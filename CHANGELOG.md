@@ -7,6 +7,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-10
+
 ### Fixed
 - Duplicati 2.4 instances did not come online in Remote Control. The server now supports protocol version 2, which 2.4 requires, including its end-to-end encrypted commands; 2.3 and older keep working on version 1.
 
@@ -69,6 +71,7 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 - Notification channel settings (SMTP passwords, webhook headers) are encrypted in the database.
 - The Docker build no longer includes local secrets, keys, logs or `.env` files.
 
-[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/burnacid/Duplicati-Cental/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/burnacid/Duplicati-Cental/releases/tag/v0.1.0
