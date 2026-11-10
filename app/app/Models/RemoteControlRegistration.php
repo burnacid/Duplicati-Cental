@@ -63,6 +63,14 @@ class RemoteControlRegistration extends Model
         return $this->belongsTo(BackupServer::class, 'backup_server_id');
     }
 
+    /**
+     * Name shown in the UI: the (editable) name of the linked backup server, else the machine name.
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->backupServer?->name ?: ($this->machine_name ?: 'Unknown machine');
+    }
+
     public function agentState(): HasOne
     {
         return $this->hasOne(RemoteControlAgentState::class, 'remote_control_registration_id');

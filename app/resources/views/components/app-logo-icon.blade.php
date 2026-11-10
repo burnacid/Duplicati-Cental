@@ -1,14 +1,12 @@
-{{--<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 42" {{ $attributes }}>--}}
-{{--    <path --}}
-{{--        fill="currentColor" --}}
-{{--        fill-rule="evenodd" --}}
-{{--        clip-rule="evenodd"--}}
-{{--        d="M17.2 5.633 8.6.855 0 5.633v26.51l16.2 9 16.2-9v-8.442l7.6-4.223V9.856l-8.6-4.777-8.6 4.777V18.3l-5.6 3.111V5.633ZM38 18.301l-5.6 3.11v-6.157l5.6-3.11V18.3Zm-1.06-7.856-5.54 3.078-5.54-3.079 5.54-3.078 5.54 3.079ZM24.8 18.3v-6.157l5.6 3.111v6.158L24.8 18.3Zm-1 1.732 5.54 3.078-13.14 7.302-5.54-3.078 13.14-7.3v-.002Zm-16.2 7.89 7.6 4.222V38.3L2 30.966V7.92l5.6 3.111v16.892ZM8.6 9.3 3.06 6.222 8.6 3.143l5.54 3.08L8.6 9.3Zm21.8 15.51-13.2 7.334V38.3l13.2-7.334v-6.156ZM9.6 11.034l5.6-3.11v14.6l-5.6 3.11v-14.6Z"--}}
-{{--    />--}}
-{{--</svg>--}}
-
-<img
-    src="{{ asset('dc_logo.svg') }}"
-    alt="Duplicati Central Logo"
-    {{ $attributes->merge(['class' => 'w-auto h-auto max-w-full max-h-full']) }}
->
+{{-- Hub logo: a central node with three connected instances. Nodes turn light in dark mode. --}}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Duplicati Central Logo" {{ $attributes }}>
+    <circle cx="32" cy="34" r="22" fill="none" stroke="#5CB4E8" stroke-width="2.5" opacity="0.45"/>
+    <path d="M32 34V12M32 34l19.05 11M32 34l-19.05 11" fill="none" stroke="#5CB4E8" stroke-width="4" stroke-linecap="round"/>
+    <g class="fill-[#1E4E79] dark:fill-[#E6F1FA]">
+        <circle cx="32" cy="12" r="6.5"/>
+        <circle cx="51.05" cy="45" r="6.5"/>
+        <circle cx="12.95" cy="45" r="6.5"/>
+        <circle cx="32" cy="34" r="10"/>
+    </g>
+    <circle cx="32" cy="34" r="4" fill="#5CB4E8"/>
+</svg>

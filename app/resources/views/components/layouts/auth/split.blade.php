@@ -10,8 +10,8 @@
                 <div class="absolute inset-0 bg-[url('images/splash.jpg')] bg-cover bg-center "></div>
                 <div class="relative z-20 flex flex-col h-full">
                     <a href="{{ route('home') }}" class="flex items-center text-lg font-medium" wire:navigate>
-                        <span class="flex h-20 w-20 items-center justify-center rounded-md">
-                            <x-app-logo-icon class="me-2 h-7 fill-current text-white" />
+                        <span class="dark flex h-20 w-20 items-center justify-center rounded-md">
+                            <x-app-logo-icon class="me-2 h-7" />
                         </span>
                         Duplicati Central
                     </a>
@@ -24,7 +24,7 @@
                 <div class="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
                     <a href="{{ route('home') }}" class="z-20 flex flex-col items-center gap-2 font-medium lg:hidden" wire:navigate>
                         <span class="flex h-10 w-20 items-center justify-center rounded-md">
-                            <x-app-logo-icon class="size-9 fill-current text-black dark:text-white" />
+                            <x-app-logo-icon class="size-9" />
                         </span>
                         <span class="text-center text-3xl">
                             Duplicati Central

@@ -46,11 +46,12 @@ class Index extends Component
     public function render()
     {
         $registrations = RemoteControlRegistration::query()
-            ->with('agentState')
+            ->with(['agentState', 'backupServer'])
             ->where('claimed_by_user_id', auth()->id())
             ->when($this->search !== '', function ($query) {
                 $query->where(function ($inner) {
                     $inner->where('machine_name', 'like', '%' . $this->search . '%')
+                        ->orWhereHas('backupServer', fn ($server) => $server->where('name', 'like', '%' . $this->search . '%'))
                         ->orWhere('machine_id', 'like', '%' . $this->search . '%')
                         ->orWhere('version', 'like', '%' . $this->search . '%');
                 });

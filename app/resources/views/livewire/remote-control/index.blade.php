@@ -39,9 +39,10 @@
                         <span class="h-2.5 w-2.5 shrink-0 rounded-full {{ $online ? 'bg-emerald-500' : 'bg-zinc-400' }}" aria-hidden="true"></span>
 
                         <a href="{{ route('remote-control.show', $registration->id) }}" wire:navigate class="min-w-0 flex-1 group">
-                            <div class="truncate font-medium text-zinc-900 group-hover:underline dark:text-white">{{ $registration->machine_name ?: 'Unknown machine' }}</div>
+                            <div class="truncate font-medium text-zinc-900 group-hover:underline dark:text-white">{{ $registration->display_name }}</div>
                             <div class="truncate text-xs text-zinc-500">
                                 {{ $online ? 'Online' : 'Offline' }}
+                                @if ($registration->machine_name && $registration->machine_name !== $registration->display_name) &middot; {{ $registration->machine_name }} @endif
                                 @if ($registration->agentState?->last_seen_at) &middot; seen {{ $registration->agentState->last_seen_at->diffForHumans() }} @endif
                                 &middot; Duplicati {{ $registration->version ?: 'n/a' }}
                                 &middot; claimed {{ $registration->claimed_at?->diffForHumans() ?: 'not yet' }}
@@ -52,8 +53,8 @@
                             <flux:button size="sm" variant="primary" :href="route('remote-control.show', $registration->id)" wire:navigate>Open</flux:button>
                             <flux:button size="sm" variant="ghost" icon="trash" class="text-red-600 dark:text-red-400"
                                          wire:click="removeRegistration({{ \Illuminate\Support\Js::from($registration->id) }})"
-                                         wire:confirm="Remove {{ $registration->machine_name ?: 'this machine' }} from remote control? Its backup history stays."
-                                         aria-label="Remove {{ $registration->machine_name }}" />
+                                         wire:confirm="Remove {{ $registration->display_name }} from remote control? Its backup history stays."
+                                         aria-label="Remove {{ $registration->display_name }}" />
                         </div>
                     </div>
 

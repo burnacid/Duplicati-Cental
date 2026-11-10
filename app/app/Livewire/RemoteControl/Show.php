@@ -42,6 +42,7 @@ class Show extends Component
     public function mount(string $id, RemoteControlCommandService $commandService): void
     {
         $this->registration = RemoteControlRegistration::query()
+            ->with('backupServer')
             ->where('claimed_by_user_id', Auth::id())
             ->where('status', RemoteControlRegistration::STATUS_CLAIMED)
             ->findOrFail($id);

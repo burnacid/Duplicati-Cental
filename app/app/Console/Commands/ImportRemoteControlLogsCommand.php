@@ -36,7 +36,7 @@ class ImportRemoteControlLogsCommand extends Command
         }
 
         foreach ($registrations as $registration) {
-            $name = $registration->machine_name ?: $registration->id;
+            $name = $registration->display_name;
             $this->info("Importing from {$name}...");
 
             try {

@@ -59,3 +59,29 @@ test('user cannot remove another users claimed remote controlled server', functi
     ]);
 });
 
+
+test('remote control pages show the backup server name instead of the machine name', function () {
+    $owner = User::factory()->create();
+    $server = \App\Models\BackupServer::query()->create([
+        'name' => 'Office NAS',
+        'user_id' => $owner->id,
+    ]);
+    $registration = claimedRegistrationFor($owner, [
+        'machine_name' => 'DESKTOP-4F2K9QX',
+        'backup_server_id' => $server->id,
+    ]);
+    $unlinked = claimedRegistrationFor($owner, ['machine_name' => 'Unlinked Laptop']);
+
+    expect($registration->display_name)->toBe('Office NAS')
+        ->and($unlinked->display_name)->toBe('Unlinked Laptop');
+
+    $this->actingAs($owner);
+
+    Livewire::test(Index::class)
+        ->assertSee('Office NAS')
+        ->assertSee('DESKTOP-4F2K9QX')
+        ->assertSee('Unlinked Laptop')
+        ->set('search', 'Office')
+        ->assertSee('Office NAS')
+        ->assertDontSee('Unlinked Laptop');
+});

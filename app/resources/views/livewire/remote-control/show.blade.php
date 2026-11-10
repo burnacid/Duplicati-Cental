@@ -23,7 +23,7 @@
 
         <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900 px-4 py-4">
             <div class="flex flex-wrap items-center gap-3">
-                <flux:heading size="xl">{{ $registration->machine_name ?: 'Unknown machine' }}</flux:heading>
+                <flux:heading size="xl">{{ $registration->display_name }}</flux:heading>
                 @if ($registration->agentState?->is_connected)
                     <flux:badge size="sm" color="green">Online</flux:badge>
                     <span class="text-xs text-zinc-500">Seen {{ $registration->agentState->last_seen_at?->diffForHumans() }}</span>
@@ -31,7 +31,7 @@
                     <flux:badge size="sm" color="zinc">Offline</flux:badge>
                 @endif
             </div>
-            <p class="text-sm text-zinc-500">{{ $registration->machine_id ?: 'no machine id' }} &middot; {{ $registration->version ?: 'n/a' }}</p>
+            <p class="text-sm text-zinc-500">@if ($registration->machine_name && $registration->machine_name !== $registration->display_name){{ $registration->machine_name }} &middot; @endif{{ $registration->machine_id ?: 'no machine id' }} &middot; {{ $registration->version ?: 'n/a' }}</p>
         </div>
 
         <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">

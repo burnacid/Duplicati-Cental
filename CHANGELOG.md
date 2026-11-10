@@ -7,6 +7,13 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+### Added
+- Duplicati Central can be installed as an app (PWA) on desktop and mobile. It shows an offline page when the server cannot be reached; backup data is never cached on the device. Installing needs HTTPS.
+
+### Changed
+- New logo and favicons. The logo switches to light colours in dark mode.
+- Remote Control shows the name of the linked backup server instead of the machine name, so renaming a server also renames it there. The machine name is still shown next to it, and search matches both.
+
 ## [0.2.1] - 2026-11-10
 
 ### Fixed

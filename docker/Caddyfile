@@ -29,6 +29,10 @@
 	@build path /build/*
 	header @build Cache-Control "public, max-age=31536000, immutable"
 
+	# The service worker and manifest are always revalidated, so updates reach installed apps.
+	@pwa path /sw.js /site.webmanifest
+	header @pwa Cache-Control "no-cache"
+
 	# Remote-control websocket (php artisan remote-control:serve), served on the same port.
 	handle /api/remote-control/ws* {
 		reverse_proxy 127.0.0.1:{$REMOTE_CONTROL_WS_PORT:8090}

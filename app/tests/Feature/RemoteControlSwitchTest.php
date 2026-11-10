@@ -87,5 +87,5 @@ test('the remote control page shows the registration url with a copy button', fu
         ->assertSee('Registration URL')
         ->assertSee('value="https://central.example.test/api/remote-control/register"', false)
         ->assertSee('Switch Host')
-        ->assertSee('Remove Switch Host from remote control?');
+        ->assertSee('Remove NAS from remote control?');
 });
