@@ -162,6 +162,12 @@ class DuplicatiJobConfig
         ]];
     }
 
+    /** Reports identify a job as "DB-<id>"; Duplicati's REST API uses the plain id. */
+    public static function apiBackupId(string $backupId): string
+    {
+        return (string) preg_replace('/^DB-/', '', $backupId);
+    }
+
     /** "1D" → "every day", "12h" → "every 12 hours". */
     public static function repeatLabel(string $repeat): string
     {

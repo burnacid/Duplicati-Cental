@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\RemoteControlRegistration;
 use App\Models\User;
+use App\Support\DuplicatiJobConfig;
 use Illuminate\Support\Collection;
 
 /**
@@ -43,8 +44,7 @@ class RemoteControlBulkService
             ->filter(fn (array $job) => $job['last_status']->isFailure() && ! $job['is_muted'] && $registrations->has($job['server_id']))
             ->map(fn (array $job) => [
                 'registration' => $registrations[$job['server_id']],
-                // Reports use "DB-<id>", Duplicati's API the plain id.
-                'backup_id' => preg_replace('/^DB-/', '', (string) $job['backup_id']),
+                'backup_id' => DuplicatiJobConfig::apiBackupId((string) $job['backup_id']),
                 'name' => $job['server_name'].' - '.$job['backup_name'],
             ])
             ->filter(fn (array $job) => $job['backup_id'] !== '')

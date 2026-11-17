@@ -1,8 +1,13 @@
 <div class="mt-8 space-y-8" wire:poll.60s>
     @if($flash)
-        <flux:callout icon="information-circle" variant="secondary">
+        <flux:callout
+            :icon="match ($flashVariant) { 'success' => 'check-circle', 'error' => 'exclamation-triangle', default => 'information-circle' }"
+            :variant="match ($flashVariant) { 'success' => 'success', 'error' => 'danger', default => 'secondary' }">
             <flux:callout.text>{{ $flash }}</flux:callout.text>
         </flux:callout>
+    @endif
+    @if($runCommandId)
+        <div wire:poll.1s="checkRun" class="hidden"></div>
     @endif
 
     @if($backupServers->isEmpty())

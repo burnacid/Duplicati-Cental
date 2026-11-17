@@ -244,7 +244,8 @@ test('the running task can be stopped and the instance paused and resumed', func
 
     $serverState = RemoteControlCommand::find($component->get('requests')['serverstate']);
     expect($serverState->path)->toBe('/api/v1/serverstate');
-    answer($serverState->id, 200, ['ProgramState' => 'Running']);
+    answer($serverState->id, 200, ['ProgramState' => 'Running', 'ActiveTask' => ['Item1' => 5, 'Item2' => '1']]);
+    $component->call('poll');
 
     $component->call('stopTask', false)->call('stopTask', true)->set('pauseFor', '4h')->call('pauseInstance');
     $paths = RemoteControlCommand::query()->where('method', 'POST')->pluck('path')->all();

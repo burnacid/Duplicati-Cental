@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Dashboard\BackupStatus;
 use App\Livewire\RemoteControl\Show;
 use App\Models\BackupResult;
 use App\Models\BackupServer;
@@ -219,4 +220,68 @@ test('poll understands the nested PascalCase list Duplicati returns', function (
     expect($component->get('backups'))->toBe([
         ['id' => '3', 'name' => 'Photos', 'description' => 'NAS photos', 'next_run' => '2026-11-10T02:00:00Z'],
     ]);
+});
+
+test('live progress is hidden once the task has finished', function () {
+    $owner = User::factory()->create();
+    $registration = claimedRegistrationFor($owner);
+    $this->actingAs($owner);
+
+    $component = Livewire::test(Show::class, ['id' => (string) $registration->id]);
+    completeCommand($component->get('backupsCommandId'), 200, [['Backup' => ['ID' => '1', 'Name' => 'Docs']]]);
+
+    // Duplicati keeps returning the last task's progress after it completed...
+    completeCommand($component->get('progressCommandId'), 200, ['TaskID' => 5, 'BackupID' => '1', 'Phase' => 'Backup_Complete', 'OverallProgress' => 1]);
+    $component->call('poll');
+    // ...but serverstate says nothing is running.
+    completeCommand($component->get('requests')['serverstate'], 200, ['ProgramState' => 'Running', 'ActiveTask' => null]);
+    $component->call('poll');
+
+    $component->assertSee('nothing is running')->assertDontSee('Backup_Complete');
+});
+
+test('live progress shows the task serverstate reports as active', function () {
+    $owner = User::factory()->create();
+    $registration = claimedRegistrationFor($owner);
+    $this->actingAs($owner);
+
+    $component = Livewire::test(Show::class, ['id' => (string) $registration->id]);
+    completeCommand($component->get('backupsCommandId'), 200, [['Backup' => ['ID' => '1', 'Name' => 'Docs']]]);
+    completeCommand($component->get('progressCommandId'), 200, ['TaskID' => 6, 'BackupID' => '1', 'Phase' => 'Backup_ProcessingFiles', 'OverallProgress' => 0.4]);
+    $component->call('poll');
+    completeCommand($component->get('requests')['serverstate'], 200, ['ProgramState' => 'Running', 'ActiveTask' => ['Item1' => 6, 'Item2' => '1']]);
+    $component->call('poll');
+
+    $component->assertSee('Backup_ProcessingFiles')->assertDontSee('nothing is running');
+
+    // Stop targets the active task.
+    $component->call('stopTask');
+    expect(RemoteControlCommand::query()->where('path', '/api/v1/task/6/stop')->exists())->toBeTrue();
+});
+
+test('the dashboard runs a job by its Duplicati id and reports what the instance answered', function () {
+    $owner = User::factory()->create();
+    $server = BackupServer::query()->create(['name' => 'NAS', 'user_id' => $owner->id]);
+    $registration = claimedRegistrationFor($owner, ['backup_server_id' => $server->id]);
+    $registration->agentState()->create(['last_seen_at' => now(), 'connected_at' => now()]);
+    $this->actingAs($owner);
+
+    $component = Livewire::test(BackupStatus::class)
+        ->call('runNow', $server->id, 'DB-7')
+        ->assertSee('Starting');
+
+    $command = RemoteControlCommand::query()->where('method', 'POST')->sole();
+    expect($command->path)->toBe('/api/v1/backup/7/run?skipQueue=false');
+
+    completeCommand($command->id, 200, ['Status' => 'OK', 'ID' => 12]);
+    $component->call('checkRun')
+        ->assertSet('flashVariant', 'success')
+        ->assertSet('runCommandId', null);
+
+    // A refusal is shown instead of claiming success.
+    $component->call('runNow', $server->id, 'DB-8');
+    completeCommand($component->get('runCommandId'), 404, ['Error' => 'Backup not found']);
+    $component->call('checkRun')
+        ->assertSet('flashVariant', 'error')
+        ->assertSee('Backup not found');
 });

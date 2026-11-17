@@ -70,20 +70,20 @@
             <div class="px-4 py-4">
                 @if ($progressError)
                     <p class="text-sm text-red-600 dark:text-red-400">{{ $progressError }}</p>
-                @elseif ($progress === null)
+                @elseif ($live === null)
                     <p class="text-sm text-zinc-500">Idle &mdash; nothing is running.</p>
                 @else
                     @php
-                        $overall = isset($progress['OverallProgress']) ? max(0, min(1, (float) $progress['OverallProgress'])) : null;
+                        $overall = isset($live['OverallProgress']) ? max(0, min(1, (float) $live['OverallProgress'])) : null;
                     @endphp
                     <div class="space-y-2">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <p class="text-sm">
-                                <strong>{{ $backupNames[(string) ($progress['BackupID'] ?? '')] ?? ('Backup ' . ($progress['BackupID'] ?? '?')) }}</strong>
-                                &middot; task {{ $progress['TaskID'] ?? '?' }}
-                                &middot; {{ $progress['Phase'] ?? 'Working' }}
+                                <strong>{{ $backupNames[(string) ($live['BackupID'] ?? '')] ?? ('Backup ' . ($live['BackupID'] ?? '?')) }}</strong>
+                                &middot; task {{ $live['TaskID'] ?? '?' }}
+                                &middot; {{ $live['Phase'] ?? 'Working' }}
                             </p>
-                            @if (isset($progress['TaskID']))
+                            @if (isset($live['TaskID']))
                                 <div class="flex gap-2">
                                     <flux:button size="xs" icon="stop" wire:click="stopTask(false)"
                                                  wire:confirm="Stop this task after the current file?">Stop</flux:button>
@@ -97,20 +97,20 @@
                                 <div class="h-2 rounded bg-blue-500" style="width: {{ round($overall * 100) }}%"></div>
                             </div>
                         @endif
-                        @if (isset($progress['TotalFileCount']))
+                        @if (isset($live['TotalFileCount']))
                             <p class="text-xs text-zinc-500">
-                                {{ number_format((float) ($progress['ProcessedFileCount'] ?? 0)) }} / {{ number_format((float) $progress['TotalFileCount']) }} files
-                                @if (isset($progress['TotalFileSize']))
-                                    &middot; {{ $fmtBytes($progress['ProcessedFileSize'] ?? 0) }} / {{ $fmtBytes($progress['TotalFileSize']) }}
+                                {{ number_format((float) ($live['ProcessedFileCount'] ?? 0)) }} / {{ number_format((float) $live['TotalFileCount']) }} files
+                                @if (isset($live['TotalFileSize']))
+                                    &middot; {{ $fmtBytes($live['ProcessedFileSize'] ?? 0) }} / {{ $fmtBytes($live['TotalFileSize']) }}
                                 @endif
                             </p>
                         @endif
-                        @if (!empty($progress['CurrentFilename']))
-                            <p class="text-xs text-zinc-500 truncate" title="{{ $progress['CurrentFilename'] }}">{{ $progress['CurrentFilename'] }}</p>
+                        @if (!empty($live['CurrentFilename']))
+                            <p class="text-xs text-zinc-500 truncate" title="{{ $live['CurrentFilename'] }}">{{ $live['CurrentFilename'] }}</p>
                         @endif
                         <details class="text-xs">
                             <summary class="cursor-pointer text-zinc-500">Raw progress data</summary>
-                            <pre class="mt-2 overflow-x-auto rounded-lg bg-zinc-100 p-3 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">{{ json_encode($progress, JSON_PRETTY_PRINT) }}</pre>
+                            <pre class="mt-2 overflow-x-auto rounded-lg bg-zinc-100 p-3 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">{{ json_encode($live, JSON_PRETTY_PRINT) }}</pre>
                         </details>
                     </div>
                 @endif

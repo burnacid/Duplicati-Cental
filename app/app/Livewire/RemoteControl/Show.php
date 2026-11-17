@@ -75,6 +75,9 @@ class Show extends Component
 
     public ?string $reportingMessage = null;
 
+    /** Failed serverstate refreshes in a row. */
+    public int $serverStateFailures = 0;
+
     public function mount(string $id, RemoteControlCommandService $commandService): void
     {
         $this->registration = RemoteControlRegistration::query()
@@ -93,7 +96,8 @@ class Show extends Component
         $this->collectProgress($commandService);
         $this->collectRequests();
 
-        if ($this->serverState === null && ! $this->isWaitingFor('serverstate')) {
+        // Refreshed every tick: ActiveTask tells whether the progress is live (see activeProgress()).
+        if (! $this->isWaitingFor('serverstate')) {
             $this->request('serverstate', 'GET', '/api/v1/serverstate');
         }
 
@@ -156,13 +160,44 @@ class Show extends Component
     /** Stop the running task after the current file (abort: immediately). */
     public function stopTask(bool $abort = false): void
     {
-        $taskId = $this->progress['TaskID'] ?? null;
+        $taskId = $this->activeProgress()['TaskID'] ?? null;
         if (! is_numeric($taskId)) {
             return;
         }
 
         $this->instanceMessage = $abort ? 'Aborting…' : 'Stopping…';
         $this->request($abort ? 'abort' : 'stop', 'POST', sprintf('/api/v1/task/%d/%s', (int) $taskId, $abort ? 'abort' : 'stop'));
+    }
+
+    /**
+     * Progress of the task that is running now, or null when the instance is idle.
+     * Duplicati's /progressstate keeps returning the last task after it finished,
+     * so it only counts when serverstate's ActiveTask ({Item1: task id, Item2: backup id}) matches.
+     */
+    public function activeProgress(): ?array
+    {
+        if ($this->serverState === null) {
+            return null; // not known yet
+        }
+
+        if (! empty($this->serverState['Error'])) {
+            // State unknown: show progress unless it is clearly finished.
+            $phase = (string) ($this->progress['Phase'] ?? '');
+
+            return str_ends_with($phase, 'Complete') ? null : $this->progress;
+        }
+
+        $active = $this->serverState['ActiveTask'] ?? null;
+        if (! is_array($active) || ! isset($active['Item1'])) {
+            return null;
+        }
+
+        if (is_array($this->progress) && (int) ($this->progress['TaskID'] ?? -1) === (int) $active['Item1']) {
+            return $this->progress;
+        }
+
+        // Started, but the progress has not caught up yet.
+        return ['TaskID' => (int) $active['Item1'], 'BackupID' => $active['Item2'] ?? null, 'Phase' => 'Starting'];
     }
 
     /** Pause scheduled backups on the instance (and the running one). */
@@ -188,9 +223,25 @@ class Show extends Component
         match ($key) {
             'config', 'save' => $this->onJobConfigResponse($key, $body, $error),
             'filesets', 'folder' => $this->onRestoreResponse($key, $body, $error),
-            'serverstate' => $this->serverState = $error === null ? $body : ['ProgramState' => null, 'Error' => $error],
+            'serverstate' => $this->onServerState($body, $error),
             default => $this->onInstanceResponse($key, $error),
         };
+    }
+
+    /** A single failed refresh keeps the last known state instead of flickering to "unknown". */
+    private function onServerState(array $body, ?string $error): void
+    {
+        if ($error === null) {
+            $this->serverState = $body;
+            $this->serverStateFailures = 0;
+
+            return;
+        }
+
+        $this->serverStateFailures++;
+        if ($this->serverStateFailures > 1 || ! is_array($this->serverState) || ! empty($this->serverState['Error'])) {
+            $this->serverState = ['ProgramState' => null, 'Error' => $error];
+        }
     }
 
     private function onInstanceResponse(string $key, ?string $error): void
@@ -458,6 +509,7 @@ class Show extends Component
     {
         return view('livewire.remote-control.show', [
             'lastResults' => $this->latestResultsByBackupId(),
+            'live' => $this->activeProgress(),
             'importStatus' => Cache::get(ImportRemoteControlLogs::statusKey($this->registration->id)),
             'reporting' => app(RemoteControlReportUrlService::class)->status($this->registration->fresh(['backupServer', 'agentState']) ?? $this->registration),
             'summary' => $this->jobSummary(),

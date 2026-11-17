@@ -7,6 +7,10 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+### Fixed
+- **Run** on the dashboard did nothing: it sent the job id from the report (`DB-1`) instead of Duplicati's id (`1`), and said the backup was started without checking. It now uses the right id and shows whether the instance started the backup or why it refused.
+- The machine page kept showing the last finished task under **Live progress**. It now shows only a task that is running and otherwise says the instance is idle. **Stop** and **Abort** only act on a running task.
+
 ## [0.6.2] - 2026-11-17
 
 ### Added
