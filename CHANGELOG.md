@@ -7,6 +7,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-17
+
 ### Added
 - **Event log** (sidebar → Event Log): every report Duplicati sends, including ignored and rejected ones, with the reason a report was refused (missing fields, form data instead of JSON, wrong API key). Also lists sent and failed notifications and heartbeat pings. Filter by type, level and server. Kept for `EVENT_LOG_RETENTION_DAYS` (default 30).
 
@@ -130,7 +132,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 - Notification channel settings (SMTP passwords, webhook headers) are encrypted in the database.
 - The Docker build no longer includes local secrets, keys, logs or `.env` files.
 
-[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/burnacid/Duplicati-Cental/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.3.0...v0.4.0
