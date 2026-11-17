@@ -7,6 +7,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-11-17
+
 ### Fixed
 - **Run** on the dashboard did nothing: it sent the job id from the report (`DB-1`) instead of Duplicati's id (`1`), and said the backup was started without checking. It now uses the right id and shows whether the instance started the backup or why it refused.
 - The machine page kept showing the last finished task under **Live progress**. It now shows only a task that is running and otherwise says the instance is idle. **Stop** and **Abort** only act on a running task.
@@ -145,7 +147,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 - Notification channel settings (SMTP passwords, webhook headers) are encrypted in the database.
 - The Docker build no longer includes local secrets, keys, logs or `.env` files.
 
-[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.6.3...HEAD
+[0.6.3]: https://github.com/burnacid/Duplicati-Cental/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/burnacid/Duplicati-Cental/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/burnacid/Duplicati-Cental/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.5.0...v0.6.0
