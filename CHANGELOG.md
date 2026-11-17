@@ -7,6 +7,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-17
+
 ### Added
 - Remote control: Central keeps the reporting URL of each instance correct. The machine page shows whether it is correct, and **Fix reporting URL** (or **Fix reporting URLs** on the Remote Control page for all instances) sends the right URL. It also removes outdated Central URLs set by hand in Duplicati's default options or jobs, which were wrong or caused every run to be stored twice. Report URLs for other services are kept. Runs daily and with `php artisan remote-control:sync-report-urls`. Results appear in the event log.
 
@@ -139,7 +141,8 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 - Notification channel settings (SMTP passwords, webhook headers) are encrypted in the database.
 - The Docker build no longer includes local secrets, keys, logs or `.env` files.
 
-[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/burnacid/Duplicati-Cental/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/burnacid/Duplicati-Cental/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/burnacid/Duplicati-Cental/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/burnacid/Duplicati-Cental/compare/v0.4.0...v0.5.0
