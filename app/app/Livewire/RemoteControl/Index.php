@@ -2,6 +2,7 @@
 
 namespace App\Livewire\RemoteControl;
 
+use App\Jobs\SyncReportUrls;
 use App\Models\RemoteControlRegistration;
 use App\Services\RemoteControlBulkService;
 use App\Services\RemoteControlUrlService;
@@ -58,6 +59,21 @@ class Index extends Component
         session()->flash('status', $count === 0
             ? 'No failed jobs on connected instances.'
             : sprintf('%s started for %d failed job(s). Follow them on each machine page or the dashboard.', $operation === 'run' ? 'Backup' : 'Repair', $count));
+    }
+
+    /** Check the reporting URL of every claimed instance (queued; outcome in the event log). */
+    public function fixReportingUrls(): void
+    {
+        $ids = RemoteControlRegistration::query()
+            ->where('claimed_by_user_id', auth()->id())
+            ->where('status', RemoteControlRegistration::STATUS_CLAIMED)
+            ->pluck('id');
+
+        $ids->each(fn (string $id) => SyncReportUrls::dispatch($id));
+
+        session()->flash('status', $ids->isEmpty()
+            ? 'No claimed instances.'
+            : sprintf('Checking the reporting URL of %d instance(s). The results appear in the event log.', $ids->count()));
     }
 
     public function render()

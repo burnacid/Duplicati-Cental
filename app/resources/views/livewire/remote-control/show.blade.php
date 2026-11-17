@@ -118,6 +118,48 @@
         </div>
 
         <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div class="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <flux:heading size="lg">Reporting</flux:heading>
+                    @switch($reporting['state'])
+                        @case('ok')
+                            <flux:badge size="sm" color="green">Correct</flux:badge>
+                            @break
+                        @case('pending')
+                            <flux:badge size="sm" color="amber">Waiting for the instance</flux:badge>
+                            @break
+                        @case('wrong')
+                            <flux:badge size="sm" color="red">Outdated</flux:badge>
+                            @break
+                        @default
+                            <flux:badge size="sm" color="zinc">No backup server linked</flux:badge>
+                    @endswitch
+                </div>
+                <flux:button size="sm" icon="arrow-path" wire:click="fixReportingUrl" :disabled="$reporting['expected'] === null">Fix reporting URL</flux:button>
+            </div>
+            <div class="space-y-3 px-4 py-3 text-sm">
+                <p class="text-zinc-500">
+                    Central gives this instance its reporting URL, and Duplicati adds it to every job.
+                    "Fix reporting URL" sends the correct URL and removes outdated Central URLs set by hand in Duplicati's
+                    default options or jobs. This also runs once a day.
+                </p>
+                @if ($reporting['expected'])
+                    <flux:input label="Correct URL" :value="$reporting['expected']" readonly copyable />
+                @endif
+                @if ($reporting['reported'] && $reporting['reported'] !== $reporting['expected'])
+                    <p class="text-xs text-zinc-500 break-all">
+                        The instance reported <span class="font-mono">{{ $reporting['reported'] }}</span> when it last connected.
+                    </p>
+                @endif
+                @if ($reportingMessage)
+                    <p class="text-xs text-zinc-500">
+                        {{ $reportingMessage }} <a href="{{ route('event-log', ['category' => 'remote']) }}" wire:navigate class="text-indigo-600 hover:underline dark:text-indigo-400">Open event log</a>
+                    </p>
+                @endif
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
             @php
                 $importBusy = in_array($importStatus['state'] ?? null, ['queued', 'running'], true);
             @endphp

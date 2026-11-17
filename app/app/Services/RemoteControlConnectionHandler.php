@@ -60,6 +60,7 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
         $state->registration = null;
         $state->clientPublicKeyPem = null;
         $state->protocolVersion = 1;
+        $state->sentSettingsVersion = null;
 
         $this->connections[$conn] = $state;
 
@@ -170,11 +171,51 @@ class RemoteControlConnectionHandler implements MessageComponentInterface
         $result = $this->syncService->touchAndBuildControl($registration, $metadata);
 
         if ($result['control'] !== null) {
-            $this->sendEncrypted($conn, $state, 'control', [
-                'command' => $result['control']['command'],
-                'parameters' => $result['control']['parameters'],
-            ]);
+            $this->sendControl($conn, $state, $result['control']);
         }
+    }
+
+    /**
+     * Send settings that changed while instances are connected (e.g. a new reporting URL),
+     * so they do not wait for the next reconnect.
+     */
+    public function pushPendingSettings(): void
+    {
+        if ($this->connectionsByRegistrationId === []) {
+            return;
+        }
+
+        $registrations = RemoteControlRegistration::query()
+            ->with('agentState')
+            ->whereIn('id', array_keys($this->connectionsByRegistrationId))
+            ->get();
+
+        foreach ($registrations as $registration) {
+            $conn = $this->connectionsByRegistrationId[$registration->id] ?? null;
+            if ($conn === null || ! $this->connections->contains($conn)) {
+                continue;
+            }
+
+            $state = $this->connections[$conn];
+            if ($state->phase !== self::PHASE_AUTHENTICATED) {
+                continue;
+            }
+
+            $control = $this->syncService->pendingSettingsControl($registration, $state->sentSettingsVersion);
+            if ($control !== null) {
+                $this->sendControl($conn, $state, $control);
+            }
+        }
+    }
+
+    /** @param  array{command: string, parameters: array<string, mixed>}  $control */
+    private function sendControl(ConnectionInterface $conn, stdClass $state, array $control): void
+    {
+        $this->sendEncrypted($conn, $state, 'control', [
+            'command' => $control['command'],
+            'parameters' => $control['parameters'],
+        ]);
+        $state->sentSettingsVersion = (int) ($control['parameters']['settingsversion'] ?? 0);
     }
 
     private function handleAuthenticatedMessage(ConnectionInterface $conn, stdClass $state, string $rawMessage): void

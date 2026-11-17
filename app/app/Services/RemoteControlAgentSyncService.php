@@ -7,6 +7,38 @@ use App\Models\RemoteControlRegistration;
 
 class RemoteControlAgentSyncService
 {
+    /** Connect metadata in which Duplicati reports its managed report URL (AdditionalReportUrl). */
+    public const REPORT_URL_METADATA = 'feature:additional-report-url';
+
+    /**
+     * Control message for settings that changed while the instance is connected,
+     * unless that version was already sent on this connection.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function pendingSettingsControl(RemoteControlRegistration $registration, ?int $alreadySentVersion): ?array
+    {
+        $settings = is_array($registration->settings) ? $registration->settings : [];
+        $targetVersion = (int) ($settings['settingsversion'] ?? 0);
+        $applied = (int) ($registration->agentState?->last_applied_settings_version ?? 0);
+
+        if ($targetVersion <= $applied || $targetVersion === $alreadySentVersion) {
+            return null;
+        }
+
+        return $this->settingsControl($settings);
+    }
+
+    /** @return array{type: string, command: string, parameters: array<string, mixed>} */
+    private function settingsControl(array $settings): array
+    {
+        return [
+            'type' => 'control',
+            'command' => 'updatesettings',
+            'parameters' => $settings,
+        ];
+    }
+
     public function findClaimedRegistrationByJwt(string $jwt): ?RemoteControlRegistration
     {
         return RemoteControlRegistration::query()
@@ -39,13 +71,15 @@ class RemoteControlAgentSyncService
         $settings = is_array($registration->settings) ? $registration->settings : [];
         $targetVersion = (int) ($settings['settingsversion'] ?? 0);
 
+        // Self-heal: the instance reports a different report URL than it should have (e.g. reset locally).
+        $reported = is_array($metadata) && array_key_exists(self::REPORT_URL_METADATA, $metadata)
+            ? (string) $metadata[self::REPORT_URL_METADATA]
+            : null;
+        $drifted = $reported !== null && filled($settings['reportingurl'] ?? null) && $reported !== $settings['reportingurl'];
+
         $control = null;
-        if ($targetVersion > $state->last_applied_settings_version) {
-            $control = [
-                'type' => 'control',
-                'command' => 'updatesettings',
-                'parameters' => $settings,
-            ];
+        if ($targetVersion > $state->last_applied_settings_version || $drifted) {
+            $control = $this->settingsControl($settings);
         }
 
         return [

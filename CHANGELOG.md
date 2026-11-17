@@ -7,6 +7,13 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+### Added
+- Remote control: Central keeps the reporting URL of each instance correct. The machine page shows whether it is correct, and **Fix reporting URL** (or **Fix reporting URLs** on the Remote Control page for all instances) sends the right URL. It also removes outdated Central URLs set by hand in Duplicati's default options or jobs, which were wrong or caused every run to be stored twice. Report URLs for other services are kept. Runs daily and with `php artisan remote-control:sync-report-urls`. Results appear in the event log.
+
+### Fixed
+- After regenerating a server's API key, its remote-controlled instance kept reporting with the old key. It now gets the new URL right away.
+- Changed remote-control settings were only sent when an instance reconnected. Connected instances now get them within seconds, and an instance that reports a different URL when it connects gets the correct one again.
+
 ## [0.6.1] - 2026-11-17
 
 ### Added

@@ -4,6 +4,8 @@ namespace App\Livewire\BackupServers;
 
 use App\Models\BackupResult;
 use App\Models\BackupServer;
+use App\Models\RemoteControlRegistration;
+use App\Services\RemoteControlReportUrlService;
 use App\Support\Snooze;
 use Flux\Flux;
 use Illuminate\Support\Str;
@@ -85,7 +87,24 @@ class Index extends Component
             $this->authorize('update', $server);
             $server->api_key = Str::random(64);
             $server->save();
-            session()->flash('message', "New API key generated for {$server->name}. Update the URL in Duplicati.");
+
+            // Remote-controlled instances get the new URL automatically.
+            $updated = 0;
+            if (config('remote_control.enabled')) {
+                $service = app(RemoteControlReportUrlService::class);
+                RemoteControlRegistration::query()
+                    ->where('backup_server_id', $server->id)
+                    ->where('claimed_by_user_id', auth()->id())
+                    ->where('status', RemoteControlRegistration::STATUS_CLAIMED)
+                    ->get()
+                    ->each(function (RemoteControlRegistration $registration) use ($service, &$updated) {
+                        $updated += $service->sync($registration, cleanup: false)['pushed'] ? 1 : 0;
+                    });
+            }
+
+            session()->flash('message', $updated > 0
+                ? "New API key generated for {$server->name}. The remote-controlled instance gets the new URL automatically."
+                : "New API key generated for {$server->name}. Update the URL in Duplicati.");
         }
 
         $this->regenerateId = null;

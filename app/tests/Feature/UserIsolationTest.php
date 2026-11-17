@@ -1,16 +1,21 @@
 <?php
 
+use App\Jobs\SyncReportUrls;
 use App\Livewire\BackupResults;
 use App\Livewire\Backups\Index as BackupsIndex;
 use App\Livewire\BackupServers\Index as BackupServersIndex;
-use App\Livewire\EventLog\Index;
+use App\Livewire\EventLog\Index as EventLogIndex;
 use App\Livewire\NotificationChannels\Index as NotificationChannelsIndex;
+use App\Livewire\RemoteControl\Index as RemoteControlIndex;
+use App\Livewire\RemoteControl\Show;
 use App\Models\BackupJobSetting;
 use App\Models\BackupResult;
 use App\Models\BackupServer;
+use App\Models\RemoteControlRegistration;
 use App\Models\User;
 use App\Services\EventLogger;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
 function storeResultFor(BackupServer $server, string $backupName = 'Docs', string $status = 'Success'): BackupResult
@@ -181,7 +186,21 @@ test('the event log only shows own events and servers', function () {
         ->assertDontSee('BobSecret')
         ->assertDontSee('Bob NAS');
 
-    Livewire::actingAs($this->alice)->test(Index::class)
+    Livewire::actingAs($this->alice)->test(EventLogIndex::class)
         ->set('serverId', $this->bobServer->id)
         ->assertDontSee('BobSecret');
+});
+
+test('another user\'s instance cannot be opened or have its reporting URL fixed', function () {
+    Queue::fake();
+    $bobInstance = RemoteControlRegistration::query()->create([
+        'machine_id' => 'bob-pc', 'registration_token' => 'r-bob', 'claim_token' => 'c-bob', 'expires_at' => now()->addHour(),
+        'status' => RemoteControlRegistration::STATUS_CLAIMED, 'claimed_by_user_id' => $this->bob->id, 'backup_server_id' => $this->bobServer->id,
+    ]);
+
+    expect(fn () => Livewire::actingAs($this->alice)->test(Show::class, ['id' => $bobInstance->id]))
+        ->toThrow(ModelNotFoundException::class);
+
+    Livewire::actingAs($this->alice)->test(RemoteControlIndex::class)->call('fixReportingUrls');
+    Queue::assertNotPushed(SyncReportUrls::class, fn ($job) => $job->registrationId === $bobInstance->id);
 });

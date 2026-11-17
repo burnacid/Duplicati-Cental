@@ -5,8 +5,12 @@
                 <flux:heading size="xl">Remote Control</flux:heading>
                 <flux:subheading>Duplicati instances claimed by your account.</flux:subheading>
             </div>
-            <div class="w-full sm:w-72">
-                <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Search machine, id, version…" aria-label="Search" />
+            <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                <flux:button size="sm" icon="arrow-path" wire:click="fixReportingUrls"
+                             wire:confirm="Set the correct reporting URL on all your instances and remove outdated Central URLs set by hand in Duplicati?">Fix reporting URLs</flux:button>
+                <div class="w-full sm:w-72">
+                    <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Search machine, id, version…" aria-label="Search" />
+                </div>
             </div>
         </div>
 

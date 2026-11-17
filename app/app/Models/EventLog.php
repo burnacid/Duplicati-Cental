@@ -19,10 +19,13 @@ class EventLog extends Model
 
     public const CATEGORY_HEARTBEAT = 'heartbeat';
 
+    public const CATEGORY_REMOTE = 'remote';
+
     public const CATEGORIES = [
         self::CATEGORY_REPORT => 'Incoming reports',
         self::CATEGORY_NOTIFICATION => 'Notifications',
         self::CATEGORY_HEARTBEAT => 'Heartbeat pings',
+        self::CATEGORY_REMOTE => 'Remote control',
     ];
 
     public const LEVEL_INFO = 'info';

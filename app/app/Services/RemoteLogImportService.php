@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\BackupResult;
 use App\Models\BackupServer;
-use App\Models\RemoteControlCommand;
 use App\Models\RemoteControlRegistration;
 use Illuminate\Support\Carbon;
 use RuntimeException;
@@ -216,27 +215,7 @@ class RemoteLogImportService
      */
     protected function request(RemoteControlRegistration $registration, string $method, string $path, int $timeoutSeconds = 45): array
     {
-        $command = $this->commands->dispatch($registration, $method, $path);
-        $deadline = microtime(true) + $timeoutSeconds;
-
-        while (microtime(true) < $deadline) {
-            usleep(300_000);
-            $command = RemoteControlCommand::query()->find($command->id);
-
-            if ($command === null) {
-                throw new RuntimeException('The request was lost.');
-            }
-
-            if ($command->isFinished()) {
-                if ($command->status !== RemoteControlCommand::STATUS_COMPLETED) {
-                    throw new RuntimeException($command->error_message ?: 'The instance did not answer.');
-                }
-
-                return [$command->response_status_code, json_decode((string) $command->response_body, true)];
-            }
-        }
-
-        throw new RuntimeException('Timed out waiting for the instance.');
+        return $this->commands->dispatchAndWait($registration, $method, $path, timeoutSeconds: $timeoutSeconds);
     }
 
     /**

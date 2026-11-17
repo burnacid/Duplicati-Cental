@@ -17,6 +17,11 @@ Schedule::command('backups:check-overdue')->hourly()->withoutOverlapping();
 // Remote-control instances that stopped checking in (REMOTE_CONTROL_OFFLINE_ALERT_MINUTES).
 Schedule::command('remote-control:check-offline')->everyFiveMinutes()->withoutOverlapping();
 
+// Correct reporting URLs on remote-controlled instances (in the background: it waits for the instances).
+if (config('remote_control.enabled')) {
+    Schedule::command('remote-control:sync-report-urls')->dailyAt('04:30')->withoutOverlapping()->runInBackground();
+}
+
 if (config('backups.central.enabled')) {
     Schedule::command('app:backup')->dailyAt(config('backups.central.time'))->withoutOverlapping();
 }

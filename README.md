@@ -241,6 +241,7 @@ Example alert: `time() - duplicati_central_job_last_success_timestamp_seconds > 
 | `php artisan app:backup [--password=] [--keep=]` | Back up Central |
 | `php artisan app:restore <file> [--password=]` | Restore a backup |
 | `php artisan remote-control:import-logs [registration] --days=30` | Import history from connected instances |
+| `php artisan remote-control:sync-report-urls [registration] [--no-cleanup]` | Set the correct reporting URL on instances and remove outdated Central URLs set by hand (also runs daily) |
 | `php artisan backups:check-overdue` | Check for missed backups now (runs hourly) |
 | `php artisan backups:send-digest daily\|weekly` | Send summaries now |
 

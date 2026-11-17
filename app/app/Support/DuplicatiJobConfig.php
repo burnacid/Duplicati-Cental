@@ -90,26 +90,7 @@ class DuplicatiJobConfig
     public static function withSchedule(array $config, bool $enabled, int $every, string $unit, string $time, array $days): array
     {
         $backup = (array) ($config['Backup'] ?? []);
-
-        $body = ['Backup' => [
-            'Name' => $backup['Name'] ?? '',
-            'Description' => $backup['Description'] ?? '',
-            'Tags' => $backup['Tags'] ?? [],
-            'TargetURL' => $backup['TargetURL'] ?? '',
-            'ConnectionStringID' => $backup['ConnectionStringID'] ?? -1,
-            'Sources' => $backup['Sources'] ?? [],
-            'Settings' => array_map(fn ($s) => ['Name' => $s['Name'] ?? '', 'Value' => $s['Value'] ?? null, 'Filter' => $s['Filter'] ?? null], (array) ($backup['Settings'] ?? [])),
-            'Filters' => array_map(fn ($f) => ['Order' => $f['Order'] ?? 0, 'Include' => (bool) ($f['Include'] ?? false), 'Expression' => $f['Expression'] ?? null], (array) ($backup['Filters'] ?? [])),
-            'Metadata' => $backup['Metadata'] ?? null,
-            'AdditionalTargetURLs' => array_map(fn ($t) => [
-                'UrlKey' => $t['UrlKey'] ?? null,
-                'TargetUrl' => $t['TargetUrl'] ?? '',
-                'Mode' => $t['Mode'] ?? null,
-                'Interval' => $t['Interval'] ?? null,
-                'ConnectionStringID' => $t['ConnectionStringID'] ?? -1,
-                'Options' => $t['Options'] ?? null,
-            ], (array) ($backup['AdditionalTargetURLs'] ?? [])),
-        ]];
+        $body = self::putBody($config);
 
         if (! $enabled) {
             $body['Schedule'] = null;
@@ -135,6 +116,50 @@ class DuplicatiJobConfig
         ];
 
         return $body;
+    }
+
+    /**
+     * Body for PUT /api/v1/backup/{id} with other job settings ([{Name, Value, Filter}]);
+     * the schedule is kept as it is.
+     */
+    public static function withSettings(array $config, array $settings): array
+    {
+        $body = self::putBody($config, $settings);
+        $schedule = $config['Schedule'] ?? null;
+        $body['Schedule'] = is_array($schedule) ? $schedule : null;
+
+        return $body;
+    }
+
+    /**
+     * The job as Duplicati returned it, in the shape PUT expects (without Schedule).
+     *
+     * @param  array|null  $settings  replacement Settings, null = keep
+     */
+    private static function putBody(array $config, ?array $settings = null): array
+    {
+        $backup = (array) ($config['Backup'] ?? []);
+        $settings ??= (array) ($backup['Settings'] ?? []);
+
+        return ['Backup' => [
+            'Name' => $backup['Name'] ?? '',
+            'Description' => $backup['Description'] ?? '',
+            'Tags' => $backup['Tags'] ?? [],
+            'TargetURL' => $backup['TargetURL'] ?? '',
+            'ConnectionStringID' => $backup['ConnectionStringID'] ?? -1,
+            'Sources' => $backup['Sources'] ?? [],
+            'Settings' => array_values(array_map(fn ($s) => ['Name' => $s['Name'] ?? '', 'Value' => $s['Value'] ?? null, 'Filter' => $s['Filter'] ?? null], $settings)),
+            'Filters' => array_map(fn ($f) => ['Order' => $f['Order'] ?? 0, 'Include' => (bool) ($f['Include'] ?? false), 'Expression' => $f['Expression'] ?? null], (array) ($backup['Filters'] ?? [])),
+            'Metadata' => $backup['Metadata'] ?? null,
+            'AdditionalTargetURLs' => array_map(fn ($t) => [
+                'UrlKey' => $t['UrlKey'] ?? null,
+                'TargetUrl' => $t['TargetUrl'] ?? '',
+                'Mode' => $t['Mode'] ?? null,
+                'Interval' => $t['Interval'] ?? null,
+                'ConnectionStringID' => $t['ConnectionStringID'] ?? -1,
+                'Options' => $t['Options'] ?? null,
+            ], (array) ($backup['AdditionalTargetURLs'] ?? [])),
+        ]];
     }
 
     /** "1D" → "every day", "12h" → "every 12 hours". */

@@ -39,6 +39,7 @@ class RemoteControlServeCommand extends Command
             try {
                 $handler->dispatchPendingCommands();
                 $handler->reapStaleCommands();
+                $handler->pushPendingSettings();
             } catch (\Throwable $e) {
                 Log::error('remote-control: periodic command tick failed', ['error' => $e->getMessage()]);
             }

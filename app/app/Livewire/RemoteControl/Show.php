@@ -3,6 +3,7 @@
 namespace App\Livewire\RemoteControl;
 
 use App\Jobs\ImportRemoteControlLogs;
+use App\Jobs\SyncReportUrls;
 use App\Livewire\RemoteControl\Concerns\AwaitsRemoteCommands;
 use App\Livewire\RemoteControl\Concerns\BrowsesRestore;
 use App\Livewire\RemoteControl\Concerns\ShowsJobConfiguration;
@@ -10,6 +11,7 @@ use App\Models\BackupResult;
 use App\Models\RemoteControlCommand;
 use App\Models\RemoteControlRegistration;
 use App\Services\RemoteControlCommandService;
+use App\Services\RemoteControlReportUrlService;
 use App\Services\RemoteLogImportService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -71,6 +73,8 @@ class Show extends Component
 
     public string $pauseFor = '1h';
 
+    public ?string $reportingMessage = null;
+
     public function mount(string $id, RemoteControlCommandService $commandService): void
     {
         $this->registration = RemoteControlRegistration::query()
@@ -128,6 +132,13 @@ class Show extends Component
         }
 
         ImportRemoteControlLogs::start($this->registration->id, 30);
+    }
+
+    /** Set the correct reporting URL and remove hand-set Central URLs (queued; outcome in the event log). */
+    public function fixReportingUrl(): void
+    {
+        SyncReportUrls::dispatch($this->registration->id);
+        $this->reportingMessage = 'Checking the reporting URL. The result appears in the event log.';
     }
 
     public function dismissTask(string $backupId): void
@@ -448,6 +459,7 @@ class Show extends Component
         return view('livewire.remote-control.show', [
             'lastResults' => $this->latestResultsByBackupId(),
             'importStatus' => Cache::get(ImportRemoteControlLogs::statusKey($this->registration->id)),
+            'reporting' => app(RemoteControlReportUrlService::class)->status($this->registration->fresh(['backupServer', 'agentState']) ?? $this->registration),
             'summary' => $this->jobSummary(),
             'detailsName' => collect($this->backups ?? [])->firstWhere('id', $this->detailsBackupId)['name'] ?? $this->detailsBackupId,
             'restoreName' => collect($this->backups ?? [])->firstWhere('id', $this->restoreBackupId)['name'] ?? $this->restoreBackupId,
