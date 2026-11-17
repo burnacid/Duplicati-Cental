@@ -3,11 +3,13 @@
 use App\Livewire\BackupResults;
 use App\Livewire\Backups\Index as BackupsIndex;
 use App\Livewire\BackupServers\Index as BackupServersIndex;
+use App\Livewire\EventLog\Index;
 use App\Livewire\NotificationChannels\Index as NotificationChannelsIndex;
 use App\Models\BackupJobSetting;
 use App\Models\BackupResult;
 use App\Models\BackupServer;
 use App\Models\User;
+use App\Services\EventLogger;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Livewire\Livewire;
 
@@ -166,4 +168,20 @@ test('a status page only shows its owner\'s jobs', function () {
     $this->alice->forceFill(['status_page_token' => str_repeat('a', 48)])->save();
 
     $this->get('/status/'.str_repeat('a', 48))->assertOk()->assertDontSee('BobSecret');
+});
+
+test('the event log only shows own events and servers', function () {
+    $events = app(EventLogger::class);
+    $events->forServer($this->aliceServer, 'report', 'info', 'Alice report');
+    $events->forServer($this->bobServer, 'report', 'error', 'BobSecret report');
+
+    $this->actingAs($this->alice)->get(route('event-log'))
+        ->assertOk()
+        ->assertSee('Alice report')
+        ->assertDontSee('BobSecret')
+        ->assertDontSee('Bob NAS');
+
+    Livewire::actingAs($this->alice)->test(Index::class)
+        ->set('serverId', $this->bobServer->id)
+        ->assertDontSee('BobSecret');
 });

@@ -7,6 +7,12 @@ Add new entries under **Unreleased**. `release.ps1` turns that section into the 
 
 ## [Unreleased]
 
+### Added
+- **Event log** (sidebar → Event Log): every report Duplicati sends, including ignored and rejected ones, with the reason a report was refused (missing fields, form data instead of JSON, wrong API key). Also lists sent and failed notifications and heartbeat pings. Filter by type, level and server. Kept for `EVENT_LOG_RETENTION_DAYS` (default 30).
+
+### Changed
+- Rejected backup reports are logged as warnings in `laravel.log` instead of info. Reports for an unknown server ID are logged there too.
+
 ## [0.6.0] - 2026-11-10
 
 ### Added

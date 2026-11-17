@@ -2,6 +2,7 @@
 
 use App\Jobs\QueueHeartbeat;
 use App\Models\BackupResult;
+use App\Models\EventLog;
 use App\Models\RemoteControlCommand;
 use App\Services\SystemHealthService;
 use Illuminate\Support\Facades\Schedule;
@@ -36,4 +37,9 @@ Schedule::call(function () {
     RemoteControlCommand::query()
         ->where('created_at', '<', now()->subHours((int) config('backups.remote_command_retention_hours')))
         ->delete();
+
+    $eventDays = (int) config('backups.event_log_retention_days');
+    if ($eventDays > 0) {
+        EventLog::query()->where('created_at', '<', now()->subDays($eventDays))->delete();
+    }
 })->daily()->name('prune-old-records')->withoutOverlapping();

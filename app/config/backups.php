@@ -21,6 +21,12 @@ return [
     'remote_command_retention_hours' => (int) env('REMOTE_COMMAND_RETENTION_HOURS', 24),
 
     /*
+    | Event log entries (incoming reports, notifications, heartbeat pings)
+    | older than this are pruned daily (0 = keep forever).
+    */
+    'event_log_retention_days' => (int) env('EVENT_LOG_RETENTION_DAYS', 30),
+
+    /*
     | Time of day (HH:MM, app timezone) for the daily summary, and for the
     | weekly summary on Mondays. Channels choose which one they receive.
     */

@@ -136,6 +136,7 @@ All settings are environment variables. [.env.docker.example](.env.docker.exampl
 | `REMOTE_CONTROL_ENABLED` | `true` | Remote control of Duplicati instances |
 | `REMOTE_CONTROL_OFFLINE_ALERT_MINUTES` | `15` | Alert when an instance is not seen this long (`0` = off) |
 | `BACKUP_RETENTION_DAYS` | `365` | Keep results this many days (`0` = forever) |
+| `EVENT_LOG_RETENTION_DAYS` | `30` | Keep event log entries this many days (`0` = forever) |
 | `BACKUP_DIGEST_TIME` | `08:00` | Time of the daily summary (weekly: Mondays) |
 | `BACKUP_OVERDUE_GRACE_MINUTES` | `60` | Extra time before a job counts as overdue |
 | `BACKUP_OVERDUE_FALLBACK_HOURS` | `168` | Overdue after this long when the schedule is not known yet |

@@ -51,6 +51,8 @@ services:
 
       # How long backup results are kept (days, 0 = forever).
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-365}
+      # How long event log entries are kept (days, 0 = forever).
+      EVENT_LOG_RETENTION_DAYS: ${EVENT_LOG_RETENTION_DAYS:-30}
 
       # Daily backup of Central itself (database, keys) to /app/storage/backups.
       # By hand: docker exec duplicati-central php artisan app:backup

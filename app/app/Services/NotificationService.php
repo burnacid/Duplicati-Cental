@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\BackupStatus;
 use App\Models\BackupResult;
+use App\Models\EventLog;
 use App\Models\NotificationChannel;
 use App\Models\RemoteControlRegistration;
 use App\Models\User;
@@ -180,8 +181,14 @@ class NotificationService
 
     private function deliver(NotificationChannel $channel, string $message, ?string $subject, array $context): void
     {
+        $events = app(EventLogger::class);
+        $label = Str::limit((string) ($subject ?: $message), 120);
+        $details = ['channel' => $channel->name, 'type' => $channel->type, 'event' => $context['event'] ?? null];
+
         try {
             $this->sendToChannel($channel, $message, $subject, $context);
+            $events->record($channel->user_id, EventLog::CATEGORY_NOTIFICATION, EventLog::LEVEL_INFO,
+                "Sent to {$channel->name}: {$label}", $details);
         } catch (\Throwable $e) {
             // One broken channel must not stop the others.
             Log::warning('Notification delivery failed', [
@@ -189,6 +196,8 @@ class NotificationService
                 'type' => $channel->type,
                 'error' => $e->getMessage(),
             ]);
+            $events->record($channel->user_id, EventLog::CATEGORY_NOTIFICATION, EventLog::LEVEL_ERROR,
+                "Could not send to {$channel->name}: {$label}", $details + ['error' => $e->getMessage()]);
         }
     }
 

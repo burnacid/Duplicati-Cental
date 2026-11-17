@@ -4,6 +4,8 @@ namespace App\Jobs;
 
 use App\Models\BackupJobSetting;
 use App\Models\BackupResult;
+use App\Models\EventLog;
+use App\Services\EventLogger;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
@@ -42,12 +44,27 @@ class PingHeartbeat implements ShouldQueue
             return;
         }
 
-        $response = Http::timeout(15)->get($url);
+        $server = $result->backupServer;
+        $events = app(EventLogger::class);
+        $job = '"'.$result->backup_name.'"';
+
+        try {
+            $response = Http::timeout(15)->get($url);
+        } catch (\Throwable $e) {
+            $events->forServer($server, EventLog::CATEGORY_HEARTBEAT, EventLog::LEVEL_ERROR,
+                "Heartbeat ping for {$job} failed (attempt {$this->attempts()} of {$this->tries})", ['error' => $e->getMessage()]);
+            throw $e;
+        }
 
         if ($response->failed()) {
             Log::warning('Heartbeat ping failed', ['backup_result_id' => $result->id, 'status' => $response->status()]);
+            $events->forServer($server, EventLog::CATEGORY_HEARTBEAT, EventLog::LEVEL_ERROR,
+                "Heartbeat ping for {$job} failed with HTTP {$response->status()} (attempt {$this->attempts()} of {$this->tries})");
             $response->throw();
         }
+
+        $events->forServer($server, EventLog::CATEGORY_HEARTBEAT, EventLog::LEVEL_INFO,
+            "Heartbeat ping for {$job} sent (HTTP {$response->status()})");
     }
 
     /** Successful (or warning) backups only; other operations do not prove a backup ran. */

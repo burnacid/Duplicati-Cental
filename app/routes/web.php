@@ -8,6 +8,7 @@ use App\Livewire\Backups\Index as BackupsIndex;
 use App\Livewire\BackupServers\Create as BackupServersCreate;
 use App\Livewire\BackupServers\Edit as BackupServersEdit;
 use App\Livewire\BackupServers\Index as BackupServersIndex;
+use App\Livewire\EventLog\Index as EventLogIndex;
 use App\Livewire\NotificationChannels\Index as NotificationChannelsIndex;
 use App\Livewire\RemoteControl\Index as RemoteControlIndex;
 use App\Livewire\RemoteControl\Show as RemoteControlShow;
@@ -37,6 +38,7 @@ Route::middleware(['auth', 'two-factor.required'])->group(function () {
     Route::get('/backup-results', BackupResults::class)->name('backup-results');
     Route::get('/backup-detail/{id}', BackupDetail::class)->name('backup-detail');
     Route::get('/backups', BackupsIndex::class)->name('backups');
+    Route::get('/event-log', EventLogIndex::class)->name('event-log');
     Route::middleware('remote-control')->group(function () {
         Route::get('/remote-control', RemoteControlIndex::class)->name('remote-control.index');
         Route::get('/remote-control/claim/{claimToken}', [RemoteControlClaimController::class, 'show'])->name('remote-control.claim.show');
